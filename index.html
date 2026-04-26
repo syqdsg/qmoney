@@ -223,7 +223,6 @@
     </header>
 
     <div class="main-container">
-        <!-- 公开查询视图 -->
         <div class="view active" id="publicView">
             <div class="card">
                 <div class="card-header"><div class="card-title"><span class="icon icon-blue">🔍</span> 查询欠款情况</div></div>
@@ -242,158 +241,88 @@
             <div id="queryResultArea" style="display:none;">
                 <div class="result-summary" id="resultSummary"></div>
                 <div class="card" id="resultDetailCard">
-                    <div class="card-header">
-                        <div class="card-title"><span class="icon icon-blue">📋</span> 详细记录</div>
-                        <span id="resultCount" style="font-size:0.85rem;color:var(--text-secondary);"></span>
-                    </div>
-                    <div class="table-wrapper">
-                        <table><thead><tr><th>日期</th><th>方向</th><th>金额 (元)</th><th>说明</th><th>状态</th></tr></thead>
-                        <tbody id="resultTableBody"></tbody></table>
-                    </div>
+                    <div class="card-header"><div class="card-title"><span class="icon icon-blue">📋</span> 详细记录</div><span id="resultCount"></span></div>
+                    <div class="table-wrapper"><table><thead><tr><th>日期</th><th>方向</th><th>金额 (元)</th><th>说明</th><th>状态</th></tr></thead><tbody id="resultTableBody"></tbody></table></div>
                     <div class="empty-state" id="resultEmpty" style="display:none;"><div class="empty-icon">📭</div><p>未找到与该姓名相关的已确认记录</p></div>
                 </div>
             </div>
         </div>
 
-        <!-- 提交申请视图 -->
         <div class="view" id="applyView">
             <div class="card">
                 <div class="card-header"><div class="card-title"><span class="icon icon-orange">📝</span> 提交欠款申请</div></div>
                 <p style="color:var(--text-secondary);margin-bottom:16px;font-size:0.9rem;">请如实填写以下信息，提交后需经管理员审核。</p>
                 <form id="applyForm" onsubmit="submitApplication(event)">
                     <div class="form-row">
-                        <div class="form-group"><label class="form-label">📛 您的姓名 <span style="color:#ef4444;">*</span></label><input type="text" class="form-input" id="applyName" placeholder="请输入您的真实姓名" required></div>
-                        <div class="form-group"><label class="form-label">💵 金额（元）<span style="color:#ef4444;">*</span></label><input type="number" class="form-input" id="applyAmount" placeholder="请输入金额" min="0.01" step="0.01" required></div>
+                        <div class="form-group"><label class="form-label">📛 您的姓名 <span style="color:#ef4444;">*</span></label><input type="text" class="form-input" id="applyName" required></div>
+                        <div class="form-group"><label class="form-label">💵 金额（元）<span style="color:#ef4444;">*</span></label><input type="number" class="form-input" id="applyAmount" min="0.01" step="0.01" required></div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">🔄 欠款方向 <span style="color:#ef4444;">*</span></label>
-                        <select class="form-select" id="applyDirection" required>
-                            <option value="">-- 请选择 --</option>
-                            <option value="they_owe_me">我欠管理员钱（我需要还给管理员）</option>
-                            <option value="i_owe_them">管理员欠我钱（管理员需要还给我）</option>
-                        </select>
-                        <div class="form-hint">⚠️ 请仔细确认方向："我欠管理员钱"表示您需要向管理方还款；"管理员欠我钱"表示管理方需要向您还款。</div>
-                    </div>
-                    <div class="form-group"><label class="form-label">📄 说明备注</label><textarea class="form-textarea" id="applyDesc" placeholder="可选：补充说明借款原因、时间、约定还款日期等信息..."></textarea></div>
+                    <div class="form-group"><label class="form-label">🔄 欠款方向 <span style="color:#ef4444;">*</span></label><select class="form-select" id="applyDirection" required><option value="">-- 请选择 --</option><option value="they_owe_me">我欠管理员钱</option><option value="i_owe_them">管理员欠我钱</option></select></div>
+                    <div class="form-group"><label class="form-label">📄 说明备注</label><textarea class="form-textarea" id="applyDesc"></textarea></div>
                     <div class="form-group"><label class="form-label">📅 借款日期</label><input type="date" class="form-input" id="applyDate"></div>
                     <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;">📤 提交申请，等待审核</button>
                 </form>
             </div>
         </div>
 
-        <!-- 后台管理视图 -->
         <div class="view" id="adminView">
             <div id="adminLoginSection" class="login-container">
-                <div class="login-card">
-                    <div class="lock-icon">🔒</div>
-                    <h2>后台管理登录</h2>
-                    <p class="subtitle">请输入管理密码以访问后台</p>
-                    <form onsubmit="adminLogin(event)">
-                        <div class="form-group"><input type="password" class="form-input" id="adminPasswordInput" placeholder="请输入管理密码" required autocomplete="off"></div>
-                        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;">🔑 登录后台</button>
-                    </form>
+                <div class="login-card"><div class="lock-icon">🔒</div><h2>后台管理登录</h2><p class="subtitle">请输入管理密码</p>
+                    <form onsubmit="adminLogin(event)"><input type="password" class="form-input" id="adminPasswordInput" required><button type="submit" class="btn btn-primary" style="width:100%;">🔑 登录</button></form>
                 </div>
             </div>
             <div id="adminPanelSection" style="display:none;">
-                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;" id="adminSubTabs">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
                     <button class="btn btn-sm btn-primary admin-sub-tab" data-panel="allRecords" onclick="switchAdminPanel('allRecords')">📋 所有记录</button>
-                    <button class="btn btn-sm btn-outline admin-sub-tab" data-panel="pendingReview" onclick="switchAdminPanel('pendingReview')" id="pendingReviewBtn">⏳ 待审核 <span id="pendingCountBadge" style="background:#ef4444;color:#fff;padding:1px 7px;border-radius:10px;font-size:0.7rem;">0</span></button>
+                    <button class="btn btn-sm btn-outline admin-sub-tab" data-panel="pendingReview" onclick="switchAdminPanel('pendingReview')" id="pendingReviewBtn">⏳ 待审核 <span id="pendingCountBadge" style="background:#ef4444;color:#fff;border-radius:10px;padding:1px 7px;">0</span></button>
                     <button class="btn btn-sm btn-outline admin-sub-tab" data-panel="addRecord" onclick="switchAdminPanel('addRecord')">➕ 手动添加</button>
                     <button class="btn btn-sm btn-outline admin-sub-tab" data-panel="settings" onclick="switchAdminPanel('settings')">⚙️ 设置</button>
-                    <button class="btn btn-sm btn-danger admin-sub-tab" style="margin-left:auto;" onclick="adminLogout()">🚪 退出登录</button>
+                    <button class="btn btn-sm btn-danger" style="margin-left:auto;" onclick="adminLogout()">🚪 退出</button>
                 </div>
                 <div class="admin-panel" id="panel-allRecords">
                     <div class="card">
-                        <div class="card-header">
-                            <div class="card-title"><span class="icon icon-blue">📋</span> 全部借贷记录</div>
-                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                                <input type="text" class="form-input" id="recordSearch" placeholder="🔍 搜索姓名..." style="width:180px;padding:8px 12px;font-size:0.85rem;" oninput="renderAllRecords()">
-                                <select class="form-select" id="recordFilter" style="width:130px;padding:8px 12px;font-size:0.85rem;" onchange="renderAllRecords()">
-                                    <option value="all">全部状态</option><option value="approved">已批准</option><option value="pending">待审核</option><option value="rejected">已拒绝</option>
-                                </select>
-                            </div>
+                        <div class="card-header"><div class="card-title"><span class="icon icon-blue">📋</span> 全部借贷记录</div>
+                            <div style="display:flex;gap:8px;"><input type="text" class="form-input" id="recordSearch" placeholder="🔍 搜索姓名..." style="width:180px;" oninput="renderAllRecords()"><select class="form-select" id="recordFilter" style="width:130px;" onchange="renderAllRecords()"><option value="all">全部</option><option value="approved">已批准</option><option value="pending">待审核</option><option value="rejected">已拒绝</option></select></div>
                         </div>
-                        <div class="table-wrapper">
-                            <table>
-                                <thead><tr><th>ID</th><th>姓名</th><th>方向</th><th>金额</th><th>说明</th><th>日期</th><th>状态</th><th>操作</th></tr></thead>
-                                <tbody id="allRecordsTableBody"></tbody>
-                            </table>
-                        </div>
-                        <div class="empty-state" id="allRecordsEmpty" style="display:none;"><div class="empty-icon">📭</div><p>暂无匹配的记录</p></div>
+                        <div class="table-wrapper"><table><thead><tr><th>ID</th><th>姓名</th><th>方向</th><th>金额</th><th>说明</th><th>日期</th><th>状态</th><th>操作</th></tr></thead><tbody id="allRecordsTableBody"></tbody></table></div>
+                        <div class="empty-state" id="allRecordsEmpty" style="display:none;"><div class="empty-icon">📭</div><p>暂无匹配记录</p></div>
                     </div>
                 </div>
                 <div class="admin-panel" id="panel-pendingReview" style="display:none;">
-                    <div class="card">
-                        <div class="card-header"><div class="card-title"><span class="icon icon-orange">⏳</span> 待审核申请</div></div>
-                        <div class="table-wrapper">
-                            <table>
-                                <thead><tr><th>ID</th><th>姓名</th><th>方向</th><th>金额</th><th>说明</th><th>日期</th><th>操作</th></tr></thead>
-                                <tbody id="pendingTableBody"></tbody>
-                            </table>
-                        </div>
-                        <div class="empty-state" id="pendingEmpty" style="display:none;"><div class="empty-icon">✅</div><p>没有待审核的申请，干得不错！</p></div>
+                    <div class="card"><div class="card-header"><div class="card-title"><span class="icon icon-orange">⏳</span> 待审核申请</div></div>
+                        <div class="table-wrapper"><table><thead><tr><th>ID</th><th>姓名</th><th>方向</th><th>金额</th><th>说明</th><th>日期</th><th>操作</th></tr></thead><tbody id="pendingTableBody"></tbody></table></div>
+                        <div class="empty-state" id="pendingEmpty" style="display:none;"><div class="empty-icon">✅</div><p>没有待审核的申请</p></div>
                     </div>
                 </div>
                 <div class="admin-panel" id="panel-addRecord" style="display:none;">
-                    <div class="card">
-                        <div class="card-header"><div class="card-title"><span class="icon icon-green">➕</span> 手动添加记录（直接生效）</div></div>
+                    <div class="card"><div class="card-header"><div class="card-title"><span class="icon icon-green">➕</span> 手动添加记录</div></div>
                         <form id="manualAddForm" onsubmit="manualAddRecord(event)">
-                            <div class="form-row">
-                                <div class="form-group"><label class="form-label">📛 对方姓名 <span style="color:#ef4444;">*</span></label><input type="text" class="form-input" id="manualName" placeholder="请输入对方姓名" required></div>
-                                <div class="form-group"><label class="form-label">💵 金额（元）<span style="color:#ef4444;">*</span></label><input type="number" class="form-input" id="manualAmount" placeholder="请输入金额" min="0.01" step="0.01" required></div>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">🔄 欠款方向 <span style="color:#ef4444;">*</span></label>
-                                <select class="form-select" id="manualDirection" required>
-                                    <option value="">-- 请选择 --</option>
-                                    <option value="they_owe_me">对方欠我（他们需要还钱给我）</option>
-                                    <option value="i_owe_them">我欠对方（我需要还钱给他们）</option>
-                                </select>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group"><label class="form-label">📄 说明备注</label><textarea class="form-textarea" id="manualDesc" placeholder="可选说明..."></textarea></div>
-                                <div class="form-group"><label class="form-label">📅 日期</label><input type="date" class="form-input" id="manualDate"></div>
-                            </div>
-                            <button type="submit" class="btn btn-success" style="width:100%;justify-content:center;padding:13px;">✅ 直接添加（已确认生效）</button>
+                            <div class="form-row"><div class="form-group"><label>📛 对方姓名</label><input type="text" class="form-input" id="manualName" required></div><div class="form-group"><label>💵 金额</label><input type="number" class="form-input" id="manualAmount" min="0.01" step="0.01" required></div></div>
+                            <div class="form-group"><label>🔄 方向</label><select class="form-select" id="manualDirection" required><option value="">-- 请选择 --</option><option value="they_owe_me">对方欠我</option><option value="i_owe_them">我欠对方</option></select></div>
+                            <div class="form-row"><div class="form-group"><label>📄 说明</label><textarea class="form-textarea" id="manualDesc"></textarea></div><div class="form-group"><label>📅 日期</label><input type="date" class="form-input" id="manualDate"></div></div>
+                            <button type="submit" class="btn btn-success" style="width:100%;">✅ 直接添加（已确认生效）</button>
                         </form>
                     </div>
                 </div>
                 <div class="admin-panel" id="panel-settings" style="display:none;">
-                    <div class="card">
-                        <div class="card-header"><div class="card-title"><span class="icon icon-blue">⚙️</span> 系统设置</div></div>
-                        <form onsubmit="changePassword(event)">
-                            <div class="form-group"><label class="form-label">🔑 修改管理密码</label><input type="password" class="form-input" id="newPassword" placeholder="请输入新密码（至少4位）" minlength="4" required></div>
-                            <button type="submit" class="btn btn-primary">💾 保存新密码</button>
-                        </form>
-                        <hr style="margin:20px 0;border-color:var(--border);">
-                        <div style="color:var(--text-secondary);font-size:0.85rem;"><strong>📊 数据统计：</strong><span id="statsInfo">加载中...</span></div>
-                        <button class="btn btn-danger btn-sm" style="margin-top:12px;" onclick="resetAllData()">🗑️ 清空所有数据</button>
+                    <div class="card"><div class="card-header"><div class="card-title"><span class="icon icon-blue">⚙️</span> 设置</div></div>
+                        <form onsubmit="changePassword(event)"><div class="form-group"><label>🔑 新密码</label><input type="password" class="form-input" id="newPassword" minlength="4" required></div><button type="submit" class="btn btn-primary">💾 保存</button></form>
+                        <hr><div>📊 数据统计：<span id="statsInfo">加载中...</span></div>
+                        <button class="btn btn-danger btn-sm" style="margin-top:12px;" onclick="resetAllData()">🗑️ 清空全部数据</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 编辑弹窗 -->
     <div class="modal-overlay" id="editModal" style="display:none;">
-        <div class="modal">
-            <h3>✏️ 编辑记录</h3>
-            <form id="editForm" onsubmit="saveEdit(event)">
-                <input type="hidden" id="editId">
-                <div class="form-row">
-                    <div class="form-group"><label class="form-label">姓名</label><input type="text" class="form-input" id="editName" required></div>
-                    <div class="form-group"><label class="form-label">金额</label><input type="number" class="form-input" id="editAmount" min="0.01" step="0.01" required></div>
-                </div>
-                <div class="form-group"><label class="form-label">方向</label><select class="form-select" id="editDirection" required><option value="they_owe_me">对方欠我</option><option value="i_owe_them">我欠对方</option></select></div>
-                <div class="form-row">
-                    <div class="form-group"><label class="form-label">说明</label><textarea class="form-textarea" id="editDesc"></textarea></div>
-                    <div class="form-group"><label class="form-label">日期</label><input type="date" class="form-input" id="editDate"></div>
-                </div>
-                <div class="form-group"><label class="form-label">状态</label><select class="form-select" id="editStatus"><option value="approved">已批准</option><option value="pending">待审核</option><option value="rejected">已拒绝</option></select></div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-outline btn-sm" onclick="closeEditModal()">取消</button>
-                    <button type="submit" class="btn btn-primary btn-sm">💾 保存修改</button>
-                </div>
+        <div class="modal"><h3>✏️ 编辑记录</h3>
+            <form id="editForm" onsubmit="saveEdit(event)"><input type="hidden" id="editId">
+                <div class="form-row"><div class="form-group"><label>姓名</label><input class="form-input" id="editName" required></div><div class="form-group"><label>金额</label><input type="number" class="form-input" id="editAmount" step="0.01" required></div></div>
+                <div class="form-group"><label>方向</label><select class="form-select" id="editDirection"><option value="they_owe_me">对方欠我</option><option value="i_owe_them">我欠对方</option></select></div>
+                <div class="form-row"><div class="form-group"><label>说明</label><textarea class="form-textarea" id="editDesc"></textarea></div><div class="form-group"><label>日期</label><input type="date" class="form-input" id="editDate"></div></div>
+                <div class="form-group"><label>状态</label><select class="form-select" id="editStatus"><option value="approved">已批准</option><option value="pending">待审核</option><option value="rejected">已拒绝</option></select></div>
+                <div class="modal-actions"><button type="button" class="btn btn-outline btn-sm" onclick="closeEditModal()">取消</button><button type="submit" class="btn btn-primary btn-sm">💾 保存</button></div>
             </form>
         </div>
     </div>
@@ -401,9 +330,10 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
-        // ==================== npoint 配置（你的 ID） ====================
-        const NPOINT_ID = '8c9fa9eb9a006bd1c770';
-        const DATA_URL = `https://api.npoint.io/${NPOINT_ID}`;
+        // ==================== 配置：把下面的 ID 换成你自己的 jsonblob ID ====================
+        const JSONBLOB_ID = '019dc904-d6ff-7a63-8830-02800b320fef';  // ← 替换这里
+
+        const API_URL = `https://jsonblob.com/api/jsonBlob/019dc904-d6ff-7a63-8830-02800b320fef`;
 
         // ==================== 全局状态 ====================
         let cachedRecords = [];
@@ -419,248 +349,162 @@
             return 'REC-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8).toUpperCase();
         }
         function getTodayDate() { return new Date().toISOString().split('T')[0]; }
-        function formatDate(dateStr) {
-            if (!dateStr) return '—';
-            const d = new Date(dateStr);
-            return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-        }
-        function formatAmount(amount) { return '¥ ' + parseFloat(amount).toFixed(2); }
-        function showToast(message, type='info') {
+        function formatDate(d) { if(!d) return '—'; const dt = new Date(d); return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
+        function formatAmount(a) { return '¥ ' + parseFloat(a).toFixed(2); }
+        function showToast(msg, type='info') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
-            toast.className = 'toast toast-' + type;
-            const icons = { success:'✅', error:'❌', info:'ℹ️' };
-            toast.textContent = (icons[type]||'') + ' ' + message;
+            toast.className = 'toast toast-'+type;
+            const icons = {success:'✅', error:'❌', info:'ℹ️'};
+            toast.textContent = (icons[type]||'') + ' ' + msg;
             toast.style.animationDuration = '0.3s, 0.3s';
             toast.style.animationDelay = '0s, 2.5s';
             container.appendChild(toast);
-            setTimeout(() => { if(toast.parentNode) toast.parentNode.removeChild(toast); }, 3000);
+            setTimeout(() => { if(toast.parentNode) toast.remove(); }, 3000);
         }
 
-        // ==================== 数据读写（npoint API） ====================
+        // ==================== 数据读写（jsonblob） ====================
         async function fetchRecords() {
             try {
-                const response = await fetch(DATA_URL + '?t=' + Date.now()); // 防缓存
-                if (!response.ok) throw new Error('读取失败，状态码: ' + response.status);
-                const data = await response.json();
+                const res = await fetch(API_URL + '?t=' + Date.now());
+                if (!res.ok) throw new Error('读取失败');
+                const data = await res.json();
                 cachedRecords = Array.isArray(data) ? data : [];
                 updatePendingBadge();
             } catch(e) {
-                console.error('获取数据失败:', e);
-                showToast('数据加载失败，请检查网络或 npoint ID', 'error');
+                console.error(e);
+                showToast('数据加载失败', 'error');
             }
         }
 
         async function saveAllRecords() {
             try {
-                const response = await fetch(DATA_URL, {
+                const res = await fetch(API_URL, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(cachedRecords)
                 });
-                if (!response.ok) throw new Error('保存失败，状态码: ' + response.status);
+                if (!res.ok) throw new Error('保存失败');
                 return true;
             } catch(e) {
-                console.error('保存失败:', e);
+                console.error(e);
                 showToast('保存失败，请稍后重试', 'error');
                 return false;
             }
         }
 
         function startPolling() {
-            if (pollTimer) clearInterval(pollTimer);
+            if(pollTimer) clearInterval(pollTimer);
             fetchRecords();
             pollTimer = setInterval(fetchRecords, 5000);
         }
 
-        // ==================== 记录操作（修改缓存 + 全量写回） ====================
-        async function addRecord(record) {
-            cachedRecords.push(record);
-            const success = await saveAllRecords();
-            if (!success) cachedRecords.pop();
-            return success;
-        }
+        // ==================== 数据操作 ====================
+        async function addRecord(r) { cachedRecords.push(r); if(!await saveAllRecords()) cachedRecords.pop(); }
         async function updateRecord(id, updates) {
-            const idx = cachedRecords.findIndex(r => r.id === id);
-            if (idx === -1) return false;
-            const original = { ...cachedRecords[idx] };
+            const idx = cachedRecords.findIndex(r => r.id===id);
+            if(idx===-1) return;
+            const orig = {...cachedRecords[idx]};
             Object.assign(cachedRecords[idx], updates);
-            const success = await saveAllRecords();
-            if (!success) cachedRecords[idx] = original;
-            return success;
+            if(!await saveAllRecords()) cachedRecords[idx] = orig;
         }
         async function deleteRecordById(id) {
-            const idx = cachedRecords.findIndex(r => r.id === id);
-            if (idx === -1) return false;
-            const deleted = cachedRecords.splice(idx, 1)[0];
-            const success = await saveAllRecords();
-            if (!success) cachedRecords.splice(idx, 0, deleted);
-            return success;
+            const idx = cachedRecords.findIndex(r => r.id===id);
+            if(idx===-1) return;
+            const del = cachedRecords.splice(idx,1)[0];
+            if(!await saveAllRecords()) cachedRecords.splice(idx,0,del);
         }
 
-        // ==================== 登录管理（密码仅存本地） ====================
-        const DEFAULT_PASSWORD = 'syqdsg';
-        const PASSWORD_KEY = 'adminPassword';
-
-        function getPassword() { return localStorage.getItem(PASSWORD_KEY) || DEFAULT_PASSWORD; }
-        function savePassword(newPwd) { localStorage.setItem(PASSWORD_KEY, newPwd); }
-
+        // ==================== 登录 ====================
+        const DEF_PWD = 'syqdsg';
+        function getPwd() { return localStorage.getItem('adminPassword') || DEF_PWD; }
         function adminLogin(e) {
             e.preventDefault();
-            const inputPwd = document.getElementById('adminPasswordInput').value;
-            if (inputPwd === getPassword()) {
-                sessionStorage.setItem('isAdminLoggedIn', 'true');
-                document.getElementById('adminLoginSection').style.display = 'none';
-                document.getElementById('adminPanelSection').style.display = 'block';
-                document.getElementById('adminPasswordInput').value = '';
+            if(document.getElementById('adminPasswordInput').value === getPwd()) {
+                sessionStorage.setItem('isAdminLoggedIn','true');
+                document.getElementById('adminLoginSection').style.display='none';
+                document.getElementById('adminPanelSection').style.display='block';
                 switchAdminPanel('allRecords');
-                showToast('登录成功，欢迎管理员！', 'success');
-            } else {
-                showToast('密码错误，请重试', 'error');
-            }
+                showToast('登录成功','success');
+            } else showToast('密码错误','error');
         }
-
         function adminLogout() {
             sessionStorage.removeItem('isAdminLoggedIn');
-            document.getElementById('adminLoginSection').style.display = 'block';
-            document.getElementById('adminPanelSection').style.display = 'none';
-            showToast('已退出登录', 'info');
+            document.getElementById('adminLoginSection').style.display='block';
+            document.getElementById('adminPanelSection').style.display='none';
         }
-
-        function checkAdminLoginState() {
-            const isLoggedIn = sessionStorage.getItem('isAdminLoggedIn') === 'true';
-            document.getElementById('adminLoginSection').style.display = isLoggedIn ? 'none' : 'block';
-            document.getElementById('adminPanelSection').style.display = isLoggedIn ? 'block' : 'none';
+        function checkAdminLogin() {
+            const is = sessionStorage.getItem('isAdminLoggedIn')==='true';
+            document.getElementById('adminLoginSection').style.display = is ? 'none' : 'block';
+            document.getElementById('adminPanelSection').style.display = is ? 'block' : 'none';
         }
 
         // ==================== 视图切换 ====================
-        function switchView(viewName) {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.querySelectorAll('#navTabs .nav-tab').forEach(t => t.classList.remove('active'));
-            const targetView = document.getElementById(viewName);
-            if (targetView) targetView.classList.add('active');
-            const tabMap = { 'publicView': 0, 'applyView': 1, 'adminView': 2 };
-            const tabs = document.querySelectorAll('#navTabs .nav-tab');
-            if (tabMap[viewName] !== undefined && tabs[tabMap[viewName]]) {
-                tabs[tabMap[viewName]].classList.add('active');
-            }
-            if (viewName === 'adminView') {
-                checkAdminLoginState();
-                updatePendingBadge();
-            }
+        function switchView(name) {
+            document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+            document.getElementById(name).classList.add('active');
+            const idx = {publicView:0,applyView:1,adminView:2}[name];
+            const tabs = document.querySelectorAll('.nav-tab');
+            if(tabs[idx]) tabs[idx].classList.add('active');
+            if(name==='adminView') { checkAdminLogin(); updatePendingBadge(); }
         }
-
-        function switchAdminPanel(panelName) {
-            document.querySelectorAll('.admin-panel').forEach(p => p.style.display = 'none');
-            document.querySelectorAll('.admin-sub-tab').forEach(t => {
-                t.classList.remove('btn-primary');
-                t.classList.add('btn-outline');
-            });
-            const panel = document.getElementById('panel-' + panelName);
-            if (panel) panel.style.display = 'block';
-            const activeBtn = document.querySelector(`.admin-sub-tab[data-panel="${panelName}"]`);
-            if (activeBtn) {
-                activeBtn.classList.remove('btn-outline');
-                activeBtn.classList.add('btn-primary');
-            }
-            if (panelName === 'allRecords') renderAllRecords();
-            if (panelName === 'pendingReview') renderPendingRecords();
-            if (panelName === 'settings') updateStats();
-            if (panelName === 'addRecord') {
-                document.getElementById('manualDate').value = getTodayDate();
-            }
+        function switchAdminPanel(panel) {
+            document.querySelectorAll('.admin-panel').forEach(p=>p.style.display='none');
+            document.querySelectorAll('.admin-sub-tab').forEach(b=>{b.classList.remove('btn-primary');b.classList.add('btn-outline');});
+            const panelEl = document.getElementById('panel-'+panel);
+            if(panelEl) panelEl.style.display='block';
+            const btn = document.querySelector(`.admin-sub-tab[data-panel="${panel}"]`);
+            if(btn) { btn.classList.remove('btn-outline'); btn.classList.add('btn-primary'); }
+            if(panel==='allRecords') renderAllRecords();
+            if(panel==='pendingReview') renderPendingRecords();
+            if(panel==='settings') updateStats();
+            if(panel==='addRecord') document.getElementById('manualDate').value = getTodayDate();
         }
 
         function updatePendingBadge() {
-            const pendingCount = cachedRecords.filter(r => r.status === 'pending').length;
-            const badge = document.getElementById('pendingBadge');
-            const countBadge = document.getElementById('pendingCountBadge');
-            if (pendingCount > 0) {
-                badge.style.display = 'inline-block';
-                badge.textContent = pendingCount;
-                if (countBadge) countBadge.textContent = pendingCount;
-            } else {
-                badge.style.display = 'none';
-                if (countBadge) countBadge.textContent = '0';
-            }
+            const count = cachedRecords.filter(r=>r.status==='pending').length;
+            document.getElementById('pendingBadge').style.display = count ? 'inline-block' : 'none';
+            document.getElementById('pendingBadge').textContent = count;
+            document.getElementById('pendingCountBadge').textContent = count;
         }
 
-        // ==================== 公开查询 ====================
+        // ==================== 查询 ====================
         function performQuery() {
             const name = document.getElementById('queryName').value.trim();
-            if (!name) { showToast('请输入姓名进行查询', 'error'); return; }
-            const matched = cachedRecords.filter(r => r.name.trim() === name && r.status === 'approved');
-
-            const resultArea = document.getElementById('queryResultArea');
-            resultArea.style.display = 'block';
-            const resultSummary = document.getElementById('resultSummary');
-            const resultTableBody = document.getElementById('resultTableBody');
-            const resultEmpty = document.getElementById('resultEmpty');
-            const resultCount = document.getElementById('resultCount');
-            const tableWrapper = document.querySelector('#resultDetailCard .table-wrapper');
-
-            if (matched.length === 0) {
-                resultSummary.innerHTML = '';
-                resultTableBody.innerHTML = '';
-                resultEmpty.style.display = 'block';
-                resultCount.textContent = '找到 0 条记录';
-                if (tableWrapper) tableWrapper.style.display = 'none';
+            if(!name) return showToast('请输入姓名','error');
+            const matched = cachedRecords.filter(r=> r.name.trim()===name && r.status==='approved');
+            const area = document.getElementById('queryResultArea'); area.style.display='block';
+            if(matched.length===0) {
+                document.getElementById('resultSummary').innerHTML='';
+                document.getElementById('resultTableBody').innerHTML='';
+                document.getElementById('resultEmpty').style.display='block';
+                document.getElementById('resultCount').textContent='0 条记录';
+                document.querySelector('#resultDetailCard .table-wrapper').style.display='none';
             } else {
-                resultEmpty.style.display = 'none';
-                if (tableWrapper) tableWrapper.style.display = 'block';
-                resultCount.textContent = '找到 ' + matched.length + ' 条记录';
-
-                let totalTheyOweMe = 0, totalIOweThem = 0;
-                matched.forEach(r => {
-                    if (r.direction === 'they_owe_me') totalTheyOweMe += parseFloat(r.amount);
-                    if (r.direction === 'i_owe_them') totalIOweThem += parseFloat(r.amount);
-                });
-                const net = totalTheyOweMe - totalIOweThem;
-                let netClass = 'net-zero', netLabel = '平衡', netBadgeClass = 'balanced';
-                if (net > 0.005) { netClass = 'net-positive'; netLabel = '对方净欠您'; netBadgeClass = 'owe-me'; }
-                else if (net < -0.005) { netClass = 'net-negative'; netLabel = '您净欠对方'; netBadgeClass = 'i-owe'; }
-
-                resultSummary.innerHTML = `
-                    <div class="summary-card" style="border-color:#fca5a5;background:#fff5f5;">
-                        <div class="summary-label">📌 对方欠您（需还给您）</div>
-                        <div class="summary-amount positive">${formatAmount(totalTheyOweMe)}</div>
-                    </div>
-                    <div class="summary-card" style="border-color:#86efac;background:#f0fdf4;">
-                        <div class="summary-label">📌 您欠对方（需还给对方）</div>
-                        <div class="summary-amount negative">${formatAmount(totalIOweThem)}</div>
-                    </div>
-                    <div class="summary-card ${netClass}">
-                        <div class="summary-label">⚖️ 净额</div>
-                        <div class="summary-amount" style="color:${net > 0.005 ? '#dc2626' : net < -0.005 ? '#16a34a' : '#7c3aed'};">
-                            ${net >= 0 ? '' : '-'}${formatAmount(Math.abs(net))}
-                        </div>
-                        <span class="net-badge ${netBadgeClass}">${netLabel}</span>
-                    </div>
-                `;
-
-                resultTableBody.innerHTML = matched.map(r => {
-                    const dirLabel = r.direction === 'they_owe_me' ?
-                        '<span class="badge badge-direction-owe-me">对方欠我</span>' :
-                        '<span class="badge badge-direction-i-owe">我欠对方</span>';
-                    return `
-                        <tr>
-                            <td>${formatDate(r.date)}</td>
-                            <td>${dirLabel}</td>
-                            <td><strong>${formatAmount(r.amount)}</strong></td>
-                            <td>${escapeHTML(r.description || '—')}</td>
-                            <td><span class="badge badge-approved">✅ 已确认</span></td>
-                        </tr>
-                    `;
-                }).join('');
+                document.getElementById('resultEmpty').style.display='none';
+                document.querySelector('#resultDetailCard .table-wrapper').style.display='block';
+                document.getElementById('resultCount').textContent = matched.length + ' 条记录';
+                let oweMe=0, iOwe=0;
+                matched.forEach(r=>{ if(r.direction==='they_owe_me') oweMe+=r.amount; else iOwe+=r.amount; });
+                const net = oweMe - iOwe;
+                let cls='net-zero', lbl='平衡', badge='balanced';
+                if(net>0.005) { cls='net-positive'; lbl='对方净欠您'; badge='owe-me'; }
+                else if(net<-0.005) { cls='net-negative'; lbl='您净欠对方'; badge='i-owe'; }
+                document.getElementById('resultSummary').innerHTML = `
+                    <div class="summary-card" style="border-color:#fca5a5;background:#fff5f5;"><div class="summary-label">📌 对方欠您</div><div class="summary-amount positive">${formatAmount(oweMe)}</div></div>
+                    <div class="summary-card" style="border-color:#86efac;background:#f0fdf4;"><div class="summary-label">📌 您欠对方</div><div class="summary-amount negative">${formatAmount(iOwe)}</div></div>
+                    <div class="summary-card ${cls}"><div class="summary-label">⚖️ 净额</div><div class="summary-amount" style="color:${net>0?'#dc2626':net<0?'#16a34a':'#7c3aed'}">${net>=0?'':'-'}${formatAmount(Math.abs(net))}</div><span class="net-badge ${badge}">${lbl}</span></div>`;
+                document.getElementById('resultTableBody').innerHTML = matched.map(r=>`
+                    <tr><td>${formatDate(r.date)}</td><td>${r.direction==='they_owe_me'?'<span class="badge badge-direction-owe-me">对方欠我</span>':'<span class="badge badge-direction-i-owe">我欠对方</span>'}</td><td><strong>${formatAmount(r.amount)}</strong></td><td>${escapeHTML(r.description||'—')}</td><td><span class="badge badge-approved">✅ 已确认</span></td></tr>`).join('');
             }
-
-            resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            area.scrollIntoView({behavior:'smooth'});
         }
 
         // ==================== 提交申请 ====================
         async function submitApplication(e) {
             e.preventDefault();
-            const newRecord = {
+            const rec = {
                 id: generateId(),
                 name: document.getElementById('applyName').value.trim(),
                 amount: parseFloat(document.getElementById('applyAmount').value),
@@ -670,144 +514,70 @@
                 status: 'pending',
                 createdAt: new Date().toISOString()
             };
-            if (!newRecord.name || isNaN(newRecord.amount) || newRecord.amount <= 0 || !newRecord.direction) {
-                showToast('请填写所有必填字段', 'error');
-                return;
-            }
-            const success = await addRecord(newRecord);
-            if (success) {
-                document.getElementById('applyForm').reset();
-                document.getElementById('applyDate').value = '';
-                showToast('申请已提交，等待管理员审核！', 'success');
-            }
+            if(!rec.name || isNaN(rec.amount) || rec.amount<=0 || !rec.direction) return showToast('请填写完整','error');
+            await addRecord(rec);
+            document.getElementById('applyForm').reset();
+            document.getElementById('applyDate').value = '';
+            showToast('申请已提交','success');
         }
 
-        // ==================== 后台列表渲染 ====================
+        // ==================== 后台渲染 ====================
         function renderAllRecords() {
-            const searchTerm = document.getElementById('recordSearch')?.value?.trim()?.toLowerCase() || '';
-            const filterStatus = document.getElementById('recordFilter')?.value || 'all';
-            let filtered = cachedRecords;
-            if (searchTerm) filtered = filtered.filter(r => r.name.toLowerCase().includes(searchTerm));
-            if (filterStatus !== 'all') filtered = filtered.filter(r => r.status === filterStatus);
-
+            const search = document.getElementById('recordSearch')?.value?.trim()?.toLowerCase() || '';
+            const filter = document.getElementById('recordFilter')?.value || 'all';
+            let list = cachedRecords;
+            if(search) list = list.filter(r=> r.name.toLowerCase().includes(search));
+            if(filter!=='all') list = list.filter(r=> r.status===filter);
             const tbody = document.getElementById('allRecordsTableBody');
             const empty = document.getElementById('allRecordsEmpty');
-            const tableWrapper = tbody.closest('.table-wrapper');
-
-            if (filtered.length === 0) {
-                tbody.innerHTML = '';
-                empty.style.display = 'block';
-                tableWrapper.style.display = 'none';
-            } else {
-                empty.style.display = 'none';
-                tableWrapper.style.display = 'block';
-                tbody.innerHTML = filtered.map(r => {
-                    const dirLabel = r.direction === 'they_owe_me' ?
-                        '<span class="badge badge-direction-owe-me">对方欠我</span>' :
-                        '<span class="badge badge-direction-i-owe">我欠对方</span>';
-                    const statusBadge = {
-                        'approved': '<span class="badge badge-approved">✅ 已批准</span>',
-                        'pending': '<span class="badge badge-pending">⏳ 待审核</span>',
-                        'rejected': '<span class="badge badge-rejected">❌ 已拒绝</span>'
-                    }[r.status] || r.status;
-                    return `
-                        <tr>
-                            <td style="font-size:0.75rem;">${r.id}</td>
-                            <td><strong>${escapeHTML(r.name)}</strong></td>
-                            <td>${dirLabel}</td>
-                            <td><strong>${formatAmount(r.amount)}</strong></td>
-                            <td>${escapeHTML(r.description || '—')}</td>
-                            <td>${formatDate(r.date)}</td>
-                            <td>${statusBadge}</td>
-                            <td>
-                                <button class="btn btn-xs btn-outline" onclick="editRecord('${r.id}')">✏️</button>
-                                <button class="btn btn-xs btn-danger" onclick="deleteRecord('${r.id}')">🗑️</button>
-                                ${r.status === 'pending' ? `
-                                    <button class="btn btn-xs btn-success" onclick="approveRecord('${r.id}')">✅</button>
-                                    <button class="btn btn-xs btn-danger" onclick="rejectRecord('${r.id}')">❌</button>
-                                ` : ''}
-                            </td>
-                        </tr>
-                    `;
+            const wrap = tbody.closest('.table-wrapper');
+            if(list.length===0) { tbody.innerHTML=''; empty.style.display='block'; wrap.style.display='none'; }
+            else {
+                empty.style.display='none'; wrap.style.display='block';
+                tbody.innerHTML = list.map(r=>{
+                    const dir = r.direction==='they_owe_me'?'<span class="badge badge-direction-owe-me">对方欠我</span>':'<span class="badge badge-direction-i-owe">我欠对方</span>';
+                    const stat = {approved:'<span class="badge badge-approved">✅ 已批准</span>',pending:'<span class="badge badge-pending">⏳ 待审核</span>',rejected:'<span class="badge badge-rejected">❌ 已拒绝</span>'}[r.status];
+                    return `<tr><td style="font-size:0.75rem;">${r.id}</td><td><strong>${escapeHTML(r.name)}</strong></td><td>${dir}</td><td><strong>${formatAmount(r.amount)}</strong></td><td>${escapeHTML(r.description||'—')}</td><td>${formatDate(r.date)}</td><td>${stat}</td><td><button class="btn btn-xs btn-outline" onclick="editRecord('${r.id}')">✏️</button> <button class="btn btn-xs btn-danger" onclick="deleteRecord('${r.id}')">🗑️</button>${r.status==='pending'?` <button class="btn btn-xs btn-success" onclick="approveRecord('${r.id}')">✅</button> <button class="btn btn-xs btn-danger" onclick="rejectRecord('${r.id}')">❌</button>`:''}</td></tr>`;
                 }).join('');
             }
         }
-
         function renderPendingRecords() {
-            const pending = cachedRecords.filter(r => r.status === 'pending');
+            const pending = cachedRecords.filter(r=> r.status==='pending');
             const tbody = document.getElementById('pendingTableBody');
             const empty = document.getElementById('pendingEmpty');
-            const tableWrapper = tbody.closest('.table-wrapper');
-
-            if (pending.length === 0) {
-                tbody.innerHTML = '';
-                empty.style.display = 'block';
-                tableWrapper.style.display = 'none';
-            } else {
-                empty.style.display = 'none';
-                tableWrapper.style.display = 'block';
-                tbody.innerHTML = pending.map(r => {
-                    const dirLabel = r.direction === 'they_owe_me' ?
-                        '<span class="badge badge-direction-owe-me">对方欠我</span>' :
-                        '<span class="badge badge-direction-i-owe">我欠对方</span>';
-                    return `
-                        <tr>
-                            <td style="font-size:0.75rem;">${r.id}</td>
-                            <td><strong>${escapeHTML(r.name)}</strong></td>
-                            <td>${dirLabel}</td>
-                            <td><strong>${formatAmount(r.amount)}</strong></td>
-                            <td>${escapeHTML(r.description || '—')}</td>
-                            <td>${formatDate(r.date)}</td>
-                            <td>
-                                <button class="btn btn-xs btn-success" onclick="approveRecord('${r.id}')">✅ 批准</button>
-                                <button class="btn btn-xs btn-danger" onclick="rejectRecord('${r.id}')">❌ 拒绝</button>
-                                <button class="btn btn-xs btn-outline" onclick="editRecord('${r.id}')">✏️</button>
-                            </td>
-                        </tr>
-                    `;
+            const wrap = tbody.closest('.table-wrapper');
+            if(pending.length===0) { tbody.innerHTML=''; empty.style.display='block'; wrap.style.display='none'; }
+            else {
+                empty.style.display='none'; wrap.style.display='block';
+                tbody.innerHTML = pending.map(r=>{
+                    const dir = r.direction==='they_owe_me'?'<span class="badge badge-direction-owe-me">对方欠我</span>':'<span class="badge badge-direction-i-owe">我欠对方</span>';
+                    return `<tr><td>${r.id}</td><td><strong>${escapeHTML(r.name)}</strong></td><td>${dir}</td><td><strong>${formatAmount(r.amount)}</strong></td><td>${escapeHTML(r.description||'—')}</td><td>${formatDate(r.date)}</td><td><button class="btn btn-xs btn-success" onclick="approveRecord('${r.id}')">✅</button> <button class="btn btn-xs btn-danger" onclick="rejectRecord('${r.id}')">❌</button> <button class="btn btn-xs btn-outline" onclick="editRecord('${r.id}')">✏️</button></td></tr>`;
                 }).join('');
             }
             updatePendingBadge();
         }
 
-        // ==================== 审核、删除操作 ====================
-        async function approveRecord(id) {
-            if (await updateRecord(id, { status: 'approved' })) {
-                showToast('记录已批准 ✅', 'success');
-            }
-        }
-        async function rejectRecord(id) {
-            if (await updateRecord(id, { status: 'rejected' })) {
-                showToast('记录已拒绝 ❌', 'info');
-            }
-        }
-        async function deleteRecord(id) {
-            if (!confirm('确定要删除这条记录吗？此操作不可撤销！')) return;
-            if (await deleteRecordById(id)) {
-                showToast('记录已删除', 'info');
-            }
-        }
+        async function approveRecord(id) { await updateRecord(id, {status:'approved'}); showToast('已批准','success'); }
+        async function rejectRecord(id) { await updateRecord(id, {status:'rejected'}); showToast('已拒绝','info'); }
+        async function deleteRecord(id) { if(confirm('确定删除？')) { await deleteRecordById(id); showToast('已删除','info'); } }
 
-        // ==================== 编辑弹窗 ====================
         function editRecord(id) {
-            const record = cachedRecords.find(r => r.id === id);
-            if (!record) return;
-            document.getElementById('editId').value = record.id;
-            document.getElementById('editName').value = record.name;
-            document.getElementById('editAmount').value = record.amount;
-            document.getElementById('editDirection').value = record.direction;
-            document.getElementById('editDesc').value = record.description || '';
-            document.getElementById('editDate').value = record.date || '';
-            document.getElementById('editStatus').value = record.status;
-            document.getElementById('editModal').style.display = 'flex';
+            const r = cachedRecords.find(r=>r.id===id);
+            if(!r) return;
+            document.getElementById('editId').value=r.id;
+            document.getElementById('editName').value=r.name;
+            document.getElementById('editAmount').value=r.amount;
+            document.getElementById('editDirection').value=r.direction;
+            document.getElementById('editDesc').value=r.description||'';
+            document.getElementById('editDate').value=r.date||'';
+            document.getElementById('editStatus').value=r.status;
+            document.getElementById('editModal').style.display='flex';
         }
-        function closeEditModal() {
-            document.getElementById('editModal').style.display = 'none';
-        }
+        function closeEditModal() { document.getElementById('editModal').style.display='none'; }
         async function saveEdit(e) {
             e.preventDefault();
             const id = document.getElementById('editId').value;
-            const updates = {
+            const up = {
                 name: document.getElementById('editName').value.trim(),
                 amount: parseFloat(document.getElementById('editAmount').value),
                 direction: document.getElementById('editDirection').value,
@@ -815,20 +585,15 @@
                 date: document.getElementById('editDate').value || getTodayDate(),
                 status: document.getElementById('editStatus').value
             };
-            if (!updates.name || isNaN(updates.amount) || updates.amount <= 0) {
-                showToast('请填写完整信息', 'error');
-                return;
-            }
-            if (await updateRecord(id, updates)) {
-                showToast('记录已更新 💾', 'success');
-                closeEditModal();
-            }
+            if(!up.name || isNaN(up.amount) || up.amount<=0) return showToast('信息不完整','error');
+            await updateRecord(id, up);
+            showToast('已更新','success');
+            closeEditModal();
         }
 
-        // ==================== 手动添加记录 ====================
         async function manualAddRecord(e) {
             e.preventDefault();
-            const record = {
+            const rec = {
                 id: generateId(),
                 name: document.getElementById('manualName').value.trim(),
                 amount: parseFloat(document.getElementById('manualAmount').value),
@@ -838,63 +603,40 @@
                 status: 'approved',
                 createdAt: new Date().toISOString()
             };
-            if (!record.name || isNaN(record.amount) || record.amount <= 0 || !record.direction) {
-                showToast('请填写所有必填字段', 'error');
-                return;
-            }
-            const success = await addRecord(record);
-            if (success) {
-                document.getElementById('manualAddForm').reset();
-                document.getElementById('manualDate').value = getTodayDate();
-                showToast('记录已添加并生效 ✅', 'success');
-            }
+            if(!rec.name || isNaN(rec.amount) || rec.amount<=0 || !rec.direction) return showToast('请填写完整','error');
+            await addRecord(rec);
+            document.getElementById('manualAddForm').reset();
+            document.getElementById('manualDate').value = getTodayDate();
+            showToast('添加成功','success');
         }
 
-        // ==================== 设置 ====================
         function changePassword(e) {
             e.preventDefault();
-            const newPwd = document.getElementById('newPassword').value.trim();
-            if (newPwd.length < 4) {
-                showToast('密码至少需要4位', 'error');
-                return;
-            }
-            savePassword(newPwd);
-            document.getElementById('newPassword').value = '';
-            showToast('密码已更新 🔒', 'success');
+            const pwd = document.getElementById('newPassword').value.trim();
+            if(pwd.length<4) return showToast('密码至少4位','error');
+            localStorage.setItem('adminPassword', pwd);
+            document.getElementById('newPassword').value='';
+            showToast('密码已更新','success');
         }
-
         function updateStats() {
-            const total = cachedRecords.length;
-            const approved = cachedRecords.filter(r => r.status === 'approved').length;
-            const pending = cachedRecords.filter(r => r.status === 'pending').length;
-            const rejected = cachedRecords.filter(r => r.status === 'rejected').length;
-            document.getElementById('statsInfo').textContent =
-                `共 ${total} 条记录 | 已批准: ${approved} | 待审核: ${pending} | 已拒绝: ${rejected}`;
+            const t=cachedRecords.length, a=cachedRecords.filter(r=>r.status==='approved').length, p=cachedRecords.filter(r=>r.status==='pending').length, rj=cachedRecords.filter(r=>r.status==='rejected').length;
+            document.getElementById('statsInfo').textContent = `共 ${t} 条 | 已批准 ${a} | 待审核 ${p} | 已拒绝 ${rj}`;
         }
-
         async function resetAllData() {
-            if (!confirm('⚠️ 确定要清空所有数据吗？此操作不可撤销！')) return;
-            if (!confirm('最后一次确认：真的要清空所有数据吗？')) return;
+            if(!confirm('确定清空所有数据？')) return;
             cachedRecords = [];
-            if (await saveAllRecords()) {
-                showToast('所有数据已清空 🗑️', 'info');
-            }
+            if(await saveAllRecords()) showToast('已清空','info');
         }
 
-        // ==================== 初始化 ====================
+        // 初始化
         function init() {
             document.getElementById('applyDate').value = getTodayDate();
             document.getElementById('manualDate').value = getTodayDate();
             startPolling();
-            document.getElementById('editModal').addEventListener('click', function(e) {
-                if (e.target === this) closeEditModal();
-            });
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') closeEditModal();
-            });
+            document.getElementById('editModal').addEventListener('click', function(e){ if(e.target===this) closeEditModal(); });
+            document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeEditModal(); });
         }
 
-        // 暴露全局函数
         window.switchView = switchView;
         window.switchAdminPanel = switchAdminPanel;
         window.performQuery = performQuery;
@@ -912,10 +654,8 @@
         window.resetAllData = resetAllData;
         window.renderAllRecords = renderAllRecords;
         window.renderPendingRecords = renderPendingRecords;
-        window.updatePendingBadge = updatePendingBadge;
         window.updateStats = updateStats;
 
-        // 启动应用
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
