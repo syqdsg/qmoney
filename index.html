@@ -81,14 +81,8 @@
       display: block;
     }
     @keyframes fade {
-      from {
-        opacity: 0.3;
-        transform: translateY(5px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0.3; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     .card {
       background: rgba(255, 255, 255, 0.75);
@@ -166,6 +160,8 @@
       border-radius: 1.2rem;
       padding: 1.2rem;
       background: rgba(255, 255, 255, 0.5);
+      max-height: 400px;
+      overflow-y: auto;
     }
     .debt-item {
       display: flex;
@@ -183,6 +179,7 @@
       border-radius: 2rem;
       font-weight: 600;
       font-size: 0.8rem;
+      white-space: nowrap;
     }
     .badge-red {
       background: #fee2e2;
@@ -212,10 +209,6 @@
       color: #475569;
       font-size: 0.9rem;
     }
-    .loading {
-      opacity: 0.6;
-      pointer-events: none;
-    }
     .note-box {
       background: #fffbeb;
       border: 1px solid #fde68a;
@@ -232,27 +225,25 @@
     <h1>💸 债务簿</h1>
     <div class="subtitle">个人借贷管理</div>
 
-    <!-- 标签切换 -->
     <div class="tabs">
       <button class="tab-btn active" id="tabQueryBtn">🔍 查询债务</button>
       <button class="tab-btn" id="tabRequestBtn">📩 申请欠款</button>
       <button class="tab-btn" id="tabAdminBtn">🔐 后台管理</button>
     </div>
 
-    <!-- 面板1：查询债务 -->
+    <!-- 查询面板 -->
     <div class="panel active" id="queryPanel">
       <div class="card">
         <h3 style="margin-bottom: 1rem;">按姓名查询</h3>
         <div class="input-group">
-          <input type="text" id="searchNameInput" placeholder="输入姓名，例如：冷沐泽" autocomplete="off">
+          <input type="text" id="searchNameInput" placeholder="输入姓名，例如：张三" autocomplete="off">
           <button class="btn" id="searchBtn">🔎 查询</button>
         </div>
         <div id="queryResult" class="result-box" style="display: none;"></div>
       </div>
-      <p class="text-muted">* 公开查询：数据来源于云端，所有人看到同一份债务记录。</p>
     </div>
 
-    <!-- 面板2：申请欠款 -->
+    <!-- 申请面板 -->
     <div class="panel" id="requestPanel">
       <div class="card">
         <h3 style="margin-bottom: 1rem;">✋ 发起欠款申请</h3>
@@ -268,12 +259,12 @@
         </div>
         <div id="requestMessage" class="text-muted mt-2"></div>
         <div class="note-box">
-          💡 提示：提交申请需要管理员已登录后台（Token 有效），否则无法写入云端。
+          💡 提示：提交申请需要管理员已登录后台，否则无法写入云端。
         </div>
       </div>
     </div>
 
-    <!-- 面板3：后台管理 -->
+    <!-- 后台管理面板 -->
     <div class="panel" id="adminPanel">
       <div class="card">
         <div class="password-area">
@@ -282,8 +273,7 @@
           <span id="adminStatus" class="text-muted"></span>
         </div>
         <div class="note-box" style="margin-bottom:1rem;">
-          🔐 需要 GitHub Token（权限勾选 <strong>repo</strong>）。Token 只在当前浏览器会话中保存，不会上传到服务器。
-          <br>创建 Token：GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
+          🔐 需要 GitHub Token。Token 只在当前浏览器会话中保存。
         </div>
         <div id="adminContent" style="display: none;">
           <hr>
@@ -300,11 +290,13 @@
           <hr>
           <h4 style="margin-bottom: 0.8rem;">📋 待审核申请</h4>
           <div id="pendingRequestsList" class="result-box" style="background: #fff9f0;">
-            暂无待审核申请
+            <p>暂无待审核申请</p>
           </div>
           <hr>
           <h4>📊 所有已审核债务记录</h4>
-          <div id="allDebtsList" class="result-box"></div>
+          <div id="allDebtsList" class="result-box">
+            <p>暂无已审核债务</p>
+          </div>
         </div>
       </div>
     </div>
@@ -312,19 +304,16 @@
 
   <script>
     (function () {
-      // ==================== 配置 ====================
-      // 修改为你的 GitHub 用户名和仓库名
+      // ==================== 配置（改成你自己的） ====================
       const GITHUB_USERNAME = 'syqdsg';   // ← 改成你的
       const REPO_NAME = 'debt-manager';             // ← 改成你的仓库名
-      const DATA_FILE_PATH = 'data.json';           // 数据文件在仓库根目录
-      const ADMIN_PASSWORD = 'admin123';            // 备用密码（非 GitHub Token）
+      const DATA_FILE_PATH = 'data.json';
 
       const API_BASE = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${DATA_FILE_PATH}`;
 
       // ==================== 状态 ====================
       let githubToken = sessionStorage.getItem('gh_token') || '';
-      let cachedDebts = [];           // 内存缓存
-      let dataFileSha = null;        // 当前 data.json 的 sha（更新时需要）
+      let cachedDebts = [];
 
       // ==================== 工具函数 ====================
       function escapeHtml(text) {
@@ -341,6 +330,28 @@
         return Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
       }
 
+      // ==================== 关键修复：正确处理中文 Base64 ====================
+      // 把字符串转成 Base64（支持中文）
+      function toBase64(str) {
+        // 使用 TextEncoder 将字符串转为 UTF-8 字节，再转 Base64
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(str);
+        let binary = '';
+        bytes.forEach(b => binary += String.fromCharCode(b));
+        return btoa(binary);
+      }
+
+      // 把 Base64 解码成字符串（支持中文）
+      function fromBase64(base64) {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        const decoder = new TextDecoder('utf-8');
+        return decoder.decode(bytes);
+      }
+
       // ==================== GitHub API 操作 ====================
       async function fetchDataFile() {
         const headers = {};
@@ -350,14 +361,13 @@
         const response = await fetch(API_BASE, { headers });
         if (!response.ok) {
           if (response.status === 404) {
-            // 文件不存在，返回空数组
             return { debts: [], sha: null };
           }
           throw new Error(`读取失败: ${response.status}`);
         }
         const data = await response.json();
-        // content 是 base64 编码的
-        const content = JSON.parse(atob(data.content));
+        // 用修复后的解码函数
+        const content = JSON.parse(fromBase64(data.content));
         return { debts: content.debts || [], sha: data.sha };
       }
 
@@ -365,12 +375,11 @@
         if (!githubToken) {
           throw new Error('未登录后台，无法写入');
         }
-        // 先获取最新 sha
         const { sha: latestSha } = await fetchDataFile();
-        const content = JSON.stringify({ debts }, null, 2);
+        const jsonStr = JSON.stringify({ debts }, null, 2);
         const body = {
           message: '更新债务数据',
-          content: btoa(unescape(encodeURIComponent(content))),
+          content: toBase64(jsonStr),  // 用修复后的编码函数
         };
         if (latestSha) {
           body.sha = latestSha;
@@ -387,16 +396,13 @@
           const err = await response.json();
           throw new Error(err.message || '保存失败');
         }
-        const result = await response.json();
-        dataFileSha = result.content.sha;
       }
 
       // ==================== 数据刷新 ====================
       async function refreshData() {
         try {
-          const { debts, sha } = await fetchDataFile();
+          const { debts } = await fetchDataFile();
           cachedDebts = debts;
-          dataFileSha = sha;
           return debts;
         } catch (e) {
           console.error('刷新数据失败:', e);
@@ -427,7 +433,7 @@
         if (tabName === 'admin') refreshAdminPanel();
         if (tabName === 'query') {
           document.getElementById('queryResult').style.display = 'none';
-          refreshData(); // 静默刷新
+          refreshData();
         }
       }
 
@@ -450,7 +456,6 @@
           return;
         }
 
-        // 刷新最新数据
         const debts = await refreshData();
         const filtered = debts.filter(d => d.name === name && d.status === 'approved');
         const theyOweTotal = filtered.filter(d => d.type === 'theyOwe').reduce((s, d) => s + d.amount, 0);
@@ -494,14 +499,13 @@
 
         try {
           const debts = await refreshData();
-          const newRequest = {
+          debts.push({
             id: generateId(),
             name: name,
             type: direction,
             amount: amount,
             status: 'pending'
-          };
-          debts.push(newRequest);
+          });
           await saveDataFile(debts);
           cachedDebts = debts;
           document.getElementById('reqName').value = '';
@@ -520,7 +524,6 @@
       const adminStatus = document.getElementById('adminStatus');
       const tokenInput = document.getElementById('githubToken');
 
-      // 初始化：如果 session 中有 token，自动恢复
       if (githubToken) {
         tokenInput.value = githubToken;
         adminContent.style.display = 'block';
@@ -536,7 +539,6 @@
           adminStatus.style.color = '#b91c1c';
           return;
         }
-        // 测试 Token 是否有效
         try {
           const testResponse = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}`, {
             headers: { 'Authorization': `token ${token}` }
@@ -562,7 +564,6 @@
         if (e.key === 'Enter') document.getElementById('loginAdminBtn').click();
       });
 
-      // 手动添加债务
       document.getElementById('addDebtBtn').addEventListener('click', async () => {
         if (!githubToken) { alert('请先登录后台'); return; }
         const name = document.getElementById('adminName').value.trim();
@@ -572,14 +573,13 @@
           alert('请填写完整有效信息');
           return;
         }
-        const amount = parseFloat(amountStr);
         try {
           const debts = await refreshData();
           debts.push({
             id: generateId(),
             name: name,
             type: direction,
-            amount: amount,
+            amount: parseFloat(amountStr),
             status: 'approved'
           });
           await saveDataFile(debts);
@@ -641,7 +641,6 @@
         const pending = debts.filter(d => d.status === 'pending');
         const approved = debts.filter(d => d.status === 'approved');
 
-        // 待审核列表
         const pendingDiv = document.getElementById('pendingRequestsList');
         if (pending.length === 0) {
           pendingDiv.innerHTML = '<p>✨ 暂无待审核申请</p>';
@@ -660,7 +659,6 @@
           pendingDiv.innerHTML = html;
         }
 
-        // 所有已审核
         const allDiv = document.getElementById('allDebtsList');
         if (approved.length === 0) {
           allDiv.innerHTML = '<p>暂无已审核债务</p>';
@@ -677,14 +675,12 @@
         }
       }
 
-      // 挂载全局函数
       window.approveReq = (id) => approveRequest(id);
       window.rejectReq = (id) => rejectRequest(id);
       window.deleteDebtById = (id) => deleteDebt(id);
 
       // ==================== 初始化 ====================
       async function init() {
-        // 创建默认 data.json 如果不存在
         try {
           await refreshData();
         } catch (e) {
