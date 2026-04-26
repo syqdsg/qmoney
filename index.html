@@ -401,10 +401,9 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
-        const GIST_ID = '73e83a8681be375524959901c4e9dae2';            
-        const GITHUB_TOKEN = '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';     
-        const RAW_URL = `https://gist.githubusercontent.com/raw/${GIST_ID}/data.json`;
-        const API_URL = `https://api.github.com/gists/${GIST_ID}`;
+        // ==================== npoint 配置（你的 ID） ====================
+        const NPOINT_ID = '8c9fa9eb9a006bd1c770';
+        const DATA_URL = `https://api.npoint.io/${NPOINT_ID}`;
 
         // ==================== 全局状态 ====================
         let cachedRecords = [];
@@ -438,37 +437,28 @@
             setTimeout(() => { if(toast.parentNode) toast.parentNode.removeChild(toast); }, 3000);
         }
 
-        // ==================== 数据读写（通过 Gist API） ====================
+        // ==================== 数据读写（npoint API） ====================
         async function fetchRecords() {
             try {
-                const response = await fetch(RAW_URL + '?t=' + Date.now()); // 防止缓存
-                if (!response.ok) throw new Error('读取失败');
+                const response = await fetch(DATA_URL + '?t=' + Date.now()); // 防缓存
+                if (!response.ok) throw new Error('读取失败，状态码: ' + response.status);
                 const data = await response.json();
                 cachedRecords = Array.isArray(data) ? data : [];
                 updatePendingBadge();
             } catch(e) {
                 console.error('获取数据失败:', e);
-                showToast('数据加载失败，请检查网络', 'error');
+                showToast('数据加载失败，请检查网络或 npoint ID', 'error');
             }
         }
 
         async function saveAllRecords() {
             try {
-                const response = await fetch(API_URL, {
-                    method: 'PATCH',
-                    headers: {
-                        'Authorization': `token ${GITHUB_TOKEN}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        files: {
-                            'data.json': {
-                                content: JSON.stringify(cachedRecords, null, 2)
-                            }
-                        }
-                    })
+                const response = await fetch(DATA_URL, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(cachedRecords)
                 });
-                if (!response.ok) throw new Error('保存失败');
+                if (!response.ok) throw new Error('保存失败，状态码: ' + response.status);
                 return true;
             } catch(e) {
                 console.error('保存失败:', e);
@@ -508,104 +498,169 @@
             return success;
         }
 
-        // ==================== 登录管理 ====================
+        // ==================== 登录管理（密码仅存本地） ====================
         const DEFAULT_PASSWORD = 'syqdsg';
-        function getPassword() { return localStorage.getItem('adminPassword') || DEFAULT_PASSWORD; }
-        function savePassword(pwd) { localStorage.setItem('adminPassword', pwd); }
+        const PASSWORD_KEY = 'adminPassword';
+
+        function getPassword() { return localStorage.getItem(PASSWORD_KEY) || DEFAULT_PASSWORD; }
+        function savePassword(newPwd) { localStorage.setItem(PASSWORD_KEY, newPwd); }
+
         function adminLogin(e) {
             e.preventDefault();
-            if (document.getElementById('adminPasswordInput').value === getPassword()) {
+            const inputPwd = document.getElementById('adminPasswordInput').value;
+            if (inputPwd === getPassword()) {
                 sessionStorage.setItem('isAdminLoggedIn', 'true');
                 document.getElementById('adminLoginSection').style.display = 'none';
                 document.getElementById('adminPanelSection').style.display = 'block';
+                document.getElementById('adminPasswordInput').value = '';
                 switchAdminPanel('allRecords');
-                showToast('登录成功', 'success');
-            } else showToast('密码错误', 'error');
+                showToast('登录成功，欢迎管理员！', 'success');
+            } else {
+                showToast('密码错误，请重试', 'error');
+            }
         }
+
         function adminLogout() {
             sessionStorage.removeItem('isAdminLoggedIn');
             document.getElementById('adminLoginSection').style.display = 'block';
             document.getElementById('adminPanelSection').style.display = 'none';
             showToast('已退出登录', 'info');
         }
+
         function checkAdminLoginState() {
-            const logged = sessionStorage.getItem('isAdminLoggedIn') === 'true';
-            document.getElementById('adminLoginSection').style.display = logged ? 'none' : 'block';
-            document.getElementById('adminPanelSection').style.display = logged ? 'block' : 'none';
+            const isLoggedIn = sessionStorage.getItem('isAdminLoggedIn') === 'true';
+            document.getElementById('adminLoginSection').style.display = isLoggedIn ? 'none' : 'block';
+            document.getElementById('adminPanelSection').style.display = isLoggedIn ? 'block' : 'none';
         }
 
         // ==================== 视图切换 ====================
-        function switchView(name) {
+        function switchView(viewName) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('#navTabs .nav-tab').forEach(t => t.classList.remove('active'));
-            document.getElementById(name).classList.add('active');
-            const idx = {publicView:0, applyView:1, adminView:2}[name];
+            const targetView = document.getElementById(viewName);
+            if (targetView) targetView.classList.add('active');
+            const tabMap = { 'publicView': 0, 'applyView': 1, 'adminView': 2 };
             const tabs = document.querySelectorAll('#navTabs .nav-tab');
-            if (tabs[idx]) tabs[idx].classList.add('active');
-            if (name === 'adminView') { checkAdminLoginState(); updatePendingBadge(); }
+            if (tabMap[viewName] !== undefined && tabs[tabMap[viewName]]) {
+                tabs[tabMap[viewName]].classList.add('active');
+            }
+            if (viewName === 'adminView') {
+                checkAdminLoginState();
+                updatePendingBadge();
+            }
         }
-        function switchAdminPanel(panel) {
+
+        function switchAdminPanel(panelName) {
             document.querySelectorAll('.admin-panel').forEach(p => p.style.display = 'none');
-            document.querySelectorAll('.admin-sub-tab').forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-outline'); });
-            const panelEl = document.getElementById('panel-' + panel);
-            if (panelEl) panelEl.style.display = 'block';
-            const btn = document.querySelector(`.admin-sub-tab[data-panel="${panel}"]`);
-            if (btn) { btn.classList.remove('btn-outline'); btn.classList.add('btn-primary'); }
-            if (panel === 'allRecords') renderAllRecords();
-            if (panel === 'pendingReview') renderPendingRecords();
-            if (panel === 'settings') updateStats();
-            if (panel === 'addRecord') document.getElementById('manualDate').value = getTodayDate();
+            document.querySelectorAll('.admin-sub-tab').forEach(t => {
+                t.classList.remove('btn-primary');
+                t.classList.add('btn-outline');
+            });
+            const panel = document.getElementById('panel-' + panelName);
+            if (panel) panel.style.display = 'block';
+            const activeBtn = document.querySelector(`.admin-sub-tab[data-panel="${panelName}"]`);
+            if (activeBtn) {
+                activeBtn.classList.remove('btn-outline');
+                activeBtn.classList.add('btn-primary');
+            }
+            if (panelName === 'allRecords') renderAllRecords();
+            if (panelName === 'pendingReview') renderPendingRecords();
+            if (panelName === 'settings') updateStats();
+            if (panelName === 'addRecord') {
+                document.getElementById('manualDate').value = getTodayDate();
+            }
         }
 
         function updatePendingBadge() {
-            const count = cachedRecords.filter(r => r.status === 'pending').length;
+            const pendingCount = cachedRecords.filter(r => r.status === 'pending').length;
             const badge = document.getElementById('pendingBadge');
-            badge.style.display = count ? 'inline-block' : 'none';
-            badge.textContent = count;
             const countBadge = document.getElementById('pendingCountBadge');
-            if (countBadge) countBadge.textContent = count;
+            if (pendingCount > 0) {
+                badge.style.display = 'inline-block';
+                badge.textContent = pendingCount;
+                if (countBadge) countBadge.textContent = pendingCount;
+            } else {
+                badge.style.display = 'none';
+                if (countBadge) countBadge.textContent = '0';
+            }
         }
 
         // ==================== 公开查询 ====================
         function performQuery() {
             const name = document.getElementById('queryName').value.trim();
-            if (!name) return showToast('请输入姓名', 'error');
+            if (!name) { showToast('请输入姓名进行查询', 'error'); return; }
             const matched = cachedRecords.filter(r => r.name.trim() === name && r.status === 'approved');
-            const area = document.getElementById('queryResultArea');
-            area.style.display = 'block';
+
+            const resultArea = document.getElementById('queryResultArea');
+            resultArea.style.display = 'block';
+            const resultSummary = document.getElementById('resultSummary');
+            const resultTableBody = document.getElementById('resultTableBody');
+            const resultEmpty = document.getElementById('resultEmpty');
+            const resultCount = document.getElementById('resultCount');
+            const tableWrapper = document.querySelector('#resultDetailCard .table-wrapper');
+
             if (matched.length === 0) {
-                document.getElementById('resultSummary').innerHTML = '';
-                document.getElementById('resultTableBody').innerHTML = '';
-                document.getElementById('resultEmpty').style.display = 'block';
-                document.getElementById('resultCount').textContent = '找到 0 条记录';
-                document.querySelector('#resultDetailCard .table-wrapper').style.display = 'none';
+                resultSummary.innerHTML = '';
+                resultTableBody.innerHTML = '';
+                resultEmpty.style.display = 'block';
+                resultCount.textContent = '找到 0 条记录';
+                if (tableWrapper) tableWrapper.style.display = 'none';
             } else {
-                document.getElementById('resultEmpty').style.display = 'none';
-                document.querySelector('#resultDetailCard .table-wrapper').style.display = 'block';
-                document.getElementById('resultCount').textContent = `找到 ${matched.length} 条记录`;
-                let theyOwe = 0, iOwe = 0;
+                resultEmpty.style.display = 'none';
+                if (tableWrapper) tableWrapper.style.display = 'block';
+                resultCount.textContent = '找到 ' + matched.length + ' 条记录';
+
+                let totalTheyOweMe = 0, totalIOweThem = 0;
                 matched.forEach(r => {
-                    if (r.direction === 'they_owe_me') theyOwe += parseFloat(r.amount);
-                    if (r.direction === 'i_owe_them') iOwe += parseFloat(r.amount);
+                    if (r.direction === 'they_owe_me') totalTheyOweMe += parseFloat(r.amount);
+                    if (r.direction === 'i_owe_them') totalIOweThem += parseFloat(r.amount);
                 });
-                const net = theyOwe - iOwe;
-                let netClass = 'net-zero', netLabel = '平衡', netBadge = 'balanced';
-                if (net > 0.005) { netClass = 'net-positive'; netLabel = '对方净欠您'; netBadge = 'owe-me'; }
-                else if (net < -0.005) { netClass = 'net-negative'; netLabel = '您净欠对方'; netBadge = 'i-owe'; }
-                document.getElementById('resultSummary').innerHTML = `
-                    <div class="summary-card" style="border-color:#fca5a5;background:#fff5f5;"><div class="summary-label">📌 对方欠您</div><div class="summary-amount positive">${formatAmount(theyOwe)}</div></div>
-                    <div class="summary-card" style="border-color:#86efac;background:#f0fdf4;"><div class="summary-label">📌 您欠对方</div><div class="summary-amount negative">${formatAmount(iOwe)}</div></div>
-                    <div class="summary-card ${netClass}"><div class="summary-label">⚖️ 净额</div><div class="summary-amount" style="color:${net>0.005?'#dc2626':net<-0.005?'#16a34a':'#7c3aed'}">${net>=0?'':'-'}${formatAmount(Math.abs(net))}</div><span class="net-badge ${netBadge}">${netLabel}</span></div>`;
-                document.getElementById('resultTableBody').innerHTML = matched.map(r => `
-                    <tr><td>${formatDate(r.date)}</td><td>${r.direction==='they_owe_me'?'<span class="badge badge-direction-owe-me">对方欠我</span>':'<span class="badge badge-direction-i-owe">我欠对方</span>'}</td><td><strong>${formatAmount(r.amount)}</strong></td><td>${escapeHTML(r.description||'—')}</td><td><span class="badge badge-approved">✅ 已确认</span></td></tr>`).join('');
+                const net = totalTheyOweMe - totalIOweThem;
+                let netClass = 'net-zero', netLabel = '平衡', netBadgeClass = 'balanced';
+                if (net > 0.005) { netClass = 'net-positive'; netLabel = '对方净欠您'; netBadgeClass = 'owe-me'; }
+                else if (net < -0.005) { netClass = 'net-negative'; netLabel = '您净欠对方'; netBadgeClass = 'i-owe'; }
+
+                resultSummary.innerHTML = `
+                    <div class="summary-card" style="border-color:#fca5a5;background:#fff5f5;">
+                        <div class="summary-label">📌 对方欠您（需还给您）</div>
+                        <div class="summary-amount positive">${formatAmount(totalTheyOweMe)}</div>
+                    </div>
+                    <div class="summary-card" style="border-color:#86efac;background:#f0fdf4;">
+                        <div class="summary-label">📌 您欠对方（需还给对方）</div>
+                        <div class="summary-amount negative">${formatAmount(totalIOweThem)}</div>
+                    </div>
+                    <div class="summary-card ${netClass}">
+                        <div class="summary-label">⚖️ 净额</div>
+                        <div class="summary-amount" style="color:${net > 0.005 ? '#dc2626' : net < -0.005 ? '#16a34a' : '#7c3aed'};">
+                            ${net >= 0 ? '' : '-'}${formatAmount(Math.abs(net))}
+                        </div>
+                        <span class="net-badge ${netBadgeClass}">${netLabel}</span>
+                    </div>
+                `;
+
+                resultTableBody.innerHTML = matched.map(r => {
+                    const dirLabel = r.direction === 'they_owe_me' ?
+                        '<span class="badge badge-direction-owe-me">对方欠我</span>' :
+                        '<span class="badge badge-direction-i-owe">我欠对方</span>';
+                    return `
+                        <tr>
+                            <td>${formatDate(r.date)}</td>
+                            <td>${dirLabel}</td>
+                            <td><strong>${formatAmount(r.amount)}</strong></td>
+                            <td>${escapeHTML(r.description || '—')}</td>
+                            <td><span class="badge badge-approved">✅ 已确认</span></td>
+                        </tr>
+                    `;
+                }).join('');
             }
-            area.scrollIntoView({behavior:'smooth',block:'start'});
+
+            resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         // ==================== 提交申请 ====================
         async function submitApplication(e) {
             e.preventDefault();
-            const record = {
+            const newRecord = {
                 id: generateId(),
                 name: document.getElementById('applyName').value.trim(),
                 amount: parseFloat(document.getElementById('applyAmount').value),
@@ -615,35 +670,65 @@
                 status: 'pending',
                 createdAt: new Date().toISOString()
             };
-            if (!record.name || isNaN(record.amount) || record.amount <= 0 || !record.direction) return showToast('请填写所有必填字段', 'error');
-            if (await addRecord(record)) {
+            if (!newRecord.name || isNaN(newRecord.amount) || newRecord.amount <= 0 || !newRecord.direction) {
+                showToast('请填写所有必填字段', 'error');
+                return;
+            }
+            const success = await addRecord(newRecord);
+            if (success) {
                 document.getElementById('applyForm').reset();
                 document.getElementById('applyDate').value = '';
-                showToast('申请已提交，等待审核', 'success');
+                showToast('申请已提交，等待管理员审核！', 'success');
             }
         }
 
         // ==================== 后台列表渲染 ====================
         function renderAllRecords() {
-            const search = document.getElementById('recordSearch')?.value?.trim()?.toLowerCase() || '';
-            const filter = document.getElementById('recordFilter')?.value || 'all';
-            let list = cachedRecords;
-            if (search) list = list.filter(r => r.name.toLowerCase().includes(search));
-            if (filter !== 'all') list = list.filter(r => r.status === filter);
+            const searchTerm = document.getElementById('recordSearch')?.value?.trim()?.toLowerCase() || '';
+            const filterStatus = document.getElementById('recordFilter')?.value || 'all';
+            let filtered = cachedRecords;
+            if (searchTerm) filtered = filtered.filter(r => r.name.toLowerCase().includes(searchTerm));
+            if (filterStatus !== 'all') filtered = filtered.filter(r => r.status === filterStatus);
+
             const tbody = document.getElementById('allRecordsTableBody');
             const empty = document.getElementById('allRecordsEmpty');
-            const wrapper = tbody.closest('.table-wrapper');
-            if (list.length === 0) {
+            const tableWrapper = tbody.closest('.table-wrapper');
+
+            if (filtered.length === 0) {
                 tbody.innerHTML = '';
                 empty.style.display = 'block';
-                wrapper.style.display = 'none';
+                tableWrapper.style.display = 'none';
             } else {
                 empty.style.display = 'none';
-                wrapper.style.display = 'block';
-                tbody.innerHTML = list.map(r => {
-                    const dir = r.direction==='they_owe_me'?'<span class="badge badge-direction-owe-me">对方欠我</span>':'<span class="badge badge-direction-i-owe">我欠对方</span>';
-                    const status = {approved:'<span class="badge badge-approved">✅ 已批准</span>',pending:'<span class="badge badge-pending">⏳ 待审核</span>',rejected:'<span class="badge badge-rejected">❌ 已拒绝</span>'}[r.status];
-                    return `<tr><td style="font-size:0.75rem;">${r.id}</td><td><strong>${escapeHTML(r.name)}</strong></td><td>${dir}</td><td><strong>${formatAmount(r.amount)}</strong></td><td>${escapeHTML(r.description||'—')}</td><td>${formatDate(r.date)}</td><td>${status}</td><td><button class="btn btn-xs btn-outline" onclick="editRecord('${r.id}')">✏️</button> <button class="btn btn-xs btn-danger" onclick="deleteRecord('${r.id}')">🗑️</button>${r.status==='pending'?` <button class="btn btn-xs btn-success" onclick="approveRecord('${r.id}')">✅</button> <button class="btn btn-xs btn-danger" onclick="rejectRecord('${r.id}')">❌</button>`:''}</td></tr>`;
+                tableWrapper.style.display = 'block';
+                tbody.innerHTML = filtered.map(r => {
+                    const dirLabel = r.direction === 'they_owe_me' ?
+                        '<span class="badge badge-direction-owe-me">对方欠我</span>' :
+                        '<span class="badge badge-direction-i-owe">我欠对方</span>';
+                    const statusBadge = {
+                        'approved': '<span class="badge badge-approved">✅ 已批准</span>',
+                        'pending': '<span class="badge badge-pending">⏳ 待审核</span>',
+                        'rejected': '<span class="badge badge-rejected">❌ 已拒绝</span>'
+                    }[r.status] || r.status;
+                    return `
+                        <tr>
+                            <td style="font-size:0.75rem;">${r.id}</td>
+                            <td><strong>${escapeHTML(r.name)}</strong></td>
+                            <td>${dirLabel}</td>
+                            <td><strong>${formatAmount(r.amount)}</strong></td>
+                            <td>${escapeHTML(r.description || '—')}</td>
+                            <td>${formatDate(r.date)}</td>
+                            <td>${statusBadge}</td>
+                            <td>
+                                <button class="btn btn-xs btn-outline" onclick="editRecord('${r.id}')">✏️</button>
+                                <button class="btn btn-xs btn-danger" onclick="deleteRecord('${r.id}')">🗑️</button>
+                                ${r.status === 'pending' ? `
+                                    <button class="btn btn-xs btn-success" onclick="approveRecord('${r.id}')">✅</button>
+                                    <button class="btn btn-xs btn-danger" onclick="rejectRecord('${r.id}')">❌</button>
+                                ` : ''}
+                            </td>
+                        </tr>
+                    `;
                 }).join('');
             }
         }
@@ -652,40 +737,73 @@
             const pending = cachedRecords.filter(r => r.status === 'pending');
             const tbody = document.getElementById('pendingTableBody');
             const empty = document.getElementById('pendingEmpty');
-            const wrapper = tbody.closest('.table-wrapper');
+            const tableWrapper = tbody.closest('.table-wrapper');
+
             if (pending.length === 0) {
                 tbody.innerHTML = '';
                 empty.style.display = 'block';
-                wrapper.style.display = 'none';
+                tableWrapper.style.display = 'none';
             } else {
                 empty.style.display = 'none';
-                wrapper.style.display = 'block';
+                tableWrapper.style.display = 'block';
                 tbody.innerHTML = pending.map(r => {
-                    const dir = r.direction==='they_owe_me'?'<span class="badge badge-direction-owe-me">对方欠我</span>':'<span class="badge badge-direction-i-owe">我欠对方</span>';
-                    return `<tr><td>${r.id}</td><td><strong>${escapeHTML(r.name)}</strong></td><td>${dir}</td><td><strong>${formatAmount(r.amount)}</strong></td><td>${escapeHTML(r.description||'—')}</td><td>${formatDate(r.date)}</td><td><button class="btn btn-xs btn-success" onclick="approveRecord('${r.id}')">✅</button> <button class="btn btn-xs btn-danger" onclick="rejectRecord('${r.id}')">❌</button> <button class="btn btn-xs btn-outline" onclick="editRecord('${r.id}')">✏️</button></td></tr>`;
+                    const dirLabel = r.direction === 'they_owe_me' ?
+                        '<span class="badge badge-direction-owe-me">对方欠我</span>' :
+                        '<span class="badge badge-direction-i-owe">我欠对方</span>';
+                    return `
+                        <tr>
+                            <td style="font-size:0.75rem;">${r.id}</td>
+                            <td><strong>${escapeHTML(r.name)}</strong></td>
+                            <td>${dirLabel}</td>
+                            <td><strong>${formatAmount(r.amount)}</strong></td>
+                            <td>${escapeHTML(r.description || '—')}</td>
+                            <td>${formatDate(r.date)}</td>
+                            <td>
+                                <button class="btn btn-xs btn-success" onclick="approveRecord('${r.id}')">✅ 批准</button>
+                                <button class="btn btn-xs btn-danger" onclick="rejectRecord('${r.id}')">❌ 拒绝</button>
+                                <button class="btn btn-xs btn-outline" onclick="editRecord('${r.id}')">✏️</button>
+                            </td>
+                        </tr>
+                    `;
                 }).join('');
             }
             updatePendingBadge();
         }
 
-        async function approveRecord(id) { if (await updateRecord(id, {status:'approved'})) showToast('已批准', 'success'); }
-        async function rejectRecord(id) { if (await updateRecord(id, {status:'rejected'})) showToast('已拒绝', 'info'); }
-        async function deleteRecord(id) { if (confirm('确定要删除这条记录吗？') && await deleteRecordById(id)) showToast('已删除', 'info'); }
+        // ==================== 审核、删除操作 ====================
+        async function approveRecord(id) {
+            if (await updateRecord(id, { status: 'approved' })) {
+                showToast('记录已批准 ✅', 'success');
+            }
+        }
+        async function rejectRecord(id) {
+            if (await updateRecord(id, { status: 'rejected' })) {
+                showToast('记录已拒绝 ❌', 'info');
+            }
+        }
+        async function deleteRecord(id) {
+            if (!confirm('确定要删除这条记录吗？此操作不可撤销！')) return;
+            if (await deleteRecordById(id)) {
+                showToast('记录已删除', 'info');
+            }
+        }
 
-        // ==================== 编辑记录 ====================
+        // ==================== 编辑弹窗 ====================
         function editRecord(id) {
-            const r = cachedRecords.find(r => r.id === id);
-            if (!r) return;
-            document.getElementById('editId').value = r.id;
-            document.getElementById('editName').value = r.name;
-            document.getElementById('editAmount').value = r.amount;
-            document.getElementById('editDirection').value = r.direction;
-            document.getElementById('editDesc').value = r.description || '';
-            document.getElementById('editDate').value = r.date || '';
-            document.getElementById('editStatus').value = r.status;
+            const record = cachedRecords.find(r => r.id === id);
+            if (!record) return;
+            document.getElementById('editId').value = record.id;
+            document.getElementById('editName').value = record.name;
+            document.getElementById('editAmount').value = record.amount;
+            document.getElementById('editDirection').value = record.direction;
+            document.getElementById('editDesc').value = record.description || '';
+            document.getElementById('editDate').value = record.date || '';
+            document.getElementById('editStatus').value = record.status;
             document.getElementById('editModal').style.display = 'flex';
         }
-        function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
         async function saveEdit(e) {
             e.preventDefault();
             const id = document.getElementById('editId').value;
@@ -697,11 +815,17 @@
                 date: document.getElementById('editDate').value || getTodayDate(),
                 status: document.getElementById('editStatus').value
             };
-            if (!updates.name || isNaN(updates.amount) || updates.amount <= 0) return showToast('信息不完整', 'error');
-            if (await updateRecord(id, updates)) { showToast('已更新', 'success'); closeEditModal(); }
+            if (!updates.name || isNaN(updates.amount) || updates.amount <= 0) {
+                showToast('请填写完整信息', 'error');
+                return;
+            }
+            if (await updateRecord(id, updates)) {
+                showToast('记录已更新 💾', 'success');
+                closeEditModal();
+            }
         }
 
-        // ==================== 手动添加 ====================
+        // ==================== 手动添加记录 ====================
         async function manualAddRecord(e) {
             e.preventDefault();
             const record = {
@@ -714,36 +838,47 @@
                 status: 'approved',
                 createdAt: new Date().toISOString()
             };
-            if (!record.name || isNaN(record.amount) || record.amount <= 0 || !record.direction) return showToast('请填写完整', 'error');
-            if (await addRecord(record)) {
+            if (!record.name || isNaN(record.amount) || record.amount <= 0 || !record.direction) {
+                showToast('请填写所有必填字段', 'error');
+                return;
+            }
+            const success = await addRecord(record);
+            if (success) {
                 document.getElementById('manualAddForm').reset();
                 document.getElementById('manualDate').value = getTodayDate();
-                showToast('添加成功', 'success');
+                showToast('记录已添加并生效 ✅', 'success');
             }
         }
 
+        // ==================== 设置 ====================
         function changePassword(e) {
             e.preventDefault();
-            const pwd = document.getElementById('newPassword').value.trim();
-            if (pwd.length < 4) return showToast('密码至少4位', 'error');
-            savePassword(pwd);
+            const newPwd = document.getElementById('newPassword').value.trim();
+            if (newPwd.length < 4) {
+                showToast('密码至少需要4位', 'error');
+                return;
+            }
+            savePassword(newPwd);
             document.getElementById('newPassword').value = '';
-            showToast('密码已更新', 'success');
+            showToast('密码已更新 🔒', 'success');
         }
 
         function updateStats() {
-            const t = cachedRecords.length;
-            const a = cachedRecords.filter(r => r.status==='approved').length;
-            const p = cachedRecords.filter(r => r.status==='pending').length;
-            const r = cachedRecords.filter(r => r.status==='rejected').length;
-            document.getElementById('statsInfo').textContent = `共 ${t} 条记录 | 已批准: ${a} | 待审核: ${p} | 已拒绝: ${r}`;
+            const total = cachedRecords.length;
+            const approved = cachedRecords.filter(r => r.status === 'approved').length;
+            const pending = cachedRecords.filter(r => r.status === 'pending').length;
+            const rejected = cachedRecords.filter(r => r.status === 'rejected').length;
+            document.getElementById('statsInfo').textContent =
+                `共 ${total} 条记录 | 已批准: ${approved} | 待审核: ${pending} | 已拒绝: ${rejected}`;
         }
 
         async function resetAllData() {
-            if (!confirm('确定要清空所有数据吗？此操作不可撤销！')) return;
-            if (!confirm('再次确认清空所有数据？')) return;
+            if (!confirm('⚠️ 确定要清空所有数据吗？此操作不可撤销！')) return;
+            if (!confirm('最后一次确认：真的要清空所有数据吗？')) return;
             cachedRecords = [];
-            if (await saveAllRecords()) showToast('数据已清空', 'info');
+            if (await saveAllRecords()) {
+                showToast('所有数据已清空 🗑️', 'info');
+            }
         }
 
         // ==================== 初始化 ====================
@@ -751,10 +886,15 @@
             document.getElementById('applyDate').value = getTodayDate();
             document.getElementById('manualDate').value = getTodayDate();
             startPolling();
-            document.getElementById('editModal').addEventListener('click', function(e) { if(e.target===this) closeEditModal(); });
-            document.addEventListener('keydown', e => { if(e.key==='Escape') closeEditModal(); });
+            document.getElementById('editModal').addEventListener('click', function(e) {
+                if (e.target === this) closeEditModal();
+            });
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') closeEditModal();
+            });
         }
 
+        // 暴露全局函数
         window.switchView = switchView;
         window.switchAdminPanel = switchAdminPanel;
         window.performQuery = performQuery;
@@ -772,9 +912,11 @@
         window.resetAllData = resetAllData;
         window.renderAllRecords = renderAllRecords;
         window.renderPendingRecords = renderPendingRecords;
+        window.updatePendingBadge = updatePendingBadge;
         window.updateStats = updateStats;
 
-        init();
+        // 启动应用
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
