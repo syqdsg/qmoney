@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=2.0">
-  <title>债务查询系统 | 个人借贷管理</title>
+  <title>QUEDE STUDIO债务查询系统</title>
   <style>
     * {
       margin: 0;
@@ -370,7 +370,7 @@
         </div>
         <div id="queryResult" class="result-box" style="display: none;"></div>
       </div>
-      <p class="text-muted">* 公开查询：数据来源于云端，所有人看到同一份债务记录。</p>
+      <p class="text-muted">* 公开查询：数据来源于云端</p>
     </div>
 
     <!-- 申请面板 -->
@@ -409,7 +409,7 @@
           <span id="adminStatus" class="text-muted"></span>
         </div>
         <div class="note-box" style="margin-bottom:1rem;">
-          🔐 输入管理密码即可登录后台。
+          请输入密码
         </div>
         <div id="adminContent" style="display: none;">
           <hr>
@@ -420,7 +420,7 @@
               <input type="number" id="adminAmount" placeholder="金额" step="0.01" style="flex:1;">
               <select id="adminDirection" style="flex:0.8;">
                 <option value="theyOwe">我欠管理员</option>
-                <option value="iOwe">管理员欠<我/option>
+                <option value="iOwe">管理员欠我</option>
               </select>
             </div>
             <div class="flex-row">
@@ -451,15 +451,15 @@
       const REPO_NAME = 'debt-manager';
       const DATA_FILE_PATH = 'data.json';
 
-      // ★★★ 把 GitHub Token 直接写在这里（替换成你的真实 Token） ★★★
+      // ★★★ GitHub Token（已写入） ★★★
       const BUILTIN_GITHUB_TOKEN = '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';
 
-      // ★★★ 后台管理密码（独立于 GitHub Token） ★★★
-      const ADMIN_PASSWORD = 'syqdsg6662023';
+      // ★★★ 后台管理密码 ★★★
+      const ADMIN_PASSWORD = 'syqdsg';
 
       const API_BASE = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${DATA_FILE_PATH}`;
 
-      // 直接使用内置 Token，不再依赖 session
+      // 直接使用内置 Token
       const githubToken = BUILTIN_GITHUB_TOKEN;
       let adminLoggedIn = false;
       let cachedDebts = [];
@@ -871,7 +871,7 @@
             <span style="color:#dc2626;font-weight:700;">⚠ 逾期: ${overdueCount} 条</span></p>`;
           const sorted = [...approved].sort((a, b) => (isOverdue(a.dueDate) ? 0 : 1) - (isOverdue(b.dueDate) ? 0 : 1));
           sorted.forEach(d => {
-            const typeText = d.type === 'theyOwe' ? '💰我欠管理员' : '🧾 管理员欠我';
+            const typeText = d.type === 'theyOwe' ? '💰 我欠管理员' : '🧾 管理员欠我';
             const dueStatus = getDueStatusLabel(d.dueDate);
             const overdueClass = isOverdue(d.dueDate) ? 'badge-overdue' : '';
             const noteHtml = d.note ? `<div class="debt-note">📝 ${escapeHtml(d.note)}</div>` : '';
@@ -910,4 +910,4 @@
     })();
   </script>
 </body>
-</html>
+  </html>
