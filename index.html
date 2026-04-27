@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=2.0">
-  <title>QUEDE STUDIO债务查询系统</title>
+  <title>QUEDE studio债务查询系统</title>
   <style>
     * {
       margin: 0;
@@ -352,7 +352,7 @@
 <body>
   <div class="container">
     <h1>💸 债务簿</h1>
-    <div class="subtitle">个人借贷管理</div>
+    <div class="subtitle">QUEDE studio个人借贷管理</div>
 
     <div class="tabs">
       <button class="tab-btn active" id="tabQueryBtn">🔍 查询债务</button>
@@ -370,7 +370,7 @@
         </div>
         <div id="queryResult" class="result-box" style="display: none;"></div>
       </div>
-      <p class="text-muted">* 公开查询：数据来源于云端</p>
+      <p class="text-muted">* 公开查询：数据来源于云端,所有人看到同一份债务记录。</p>
     </div>
 
     <!-- 申请面板 -->
@@ -395,7 +395,7 @@
         </div>
         <div id="requestMessage" class="text-muted mt-2"></div>
         <div class="note-box">
-          💡 提示：提交后需等待管理员审核。审核通过后才能在查询中看到。
+          💡 提交后需等待管理员审核。审核通过后才能在查询中看到。
         </div>
       </div>
     </div>
@@ -409,7 +409,7 @@
           <span id="adminStatus" class="text-muted"></span>
         </div>
         <div class="note-box" style="margin-bottom:1rem;">
-          请输入密码
+          🔐 输入管理密码即可登录后台。
         </div>
         <div id="adminContent" style="display: none;">
           <hr>
@@ -450,17 +450,19 @@
       const GITHUB_USERNAME = 'syqdsg';
       const REPO_NAME = 'debt-manager';
       const DATA_FILE_PATH = 'data.json';
-
-      // ★★★ GitHub Token（已写入） ★★★
-      const BUILTIN_GITHUB_TOKEN = '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';
-
-      // ★★★ 后台管理密码 ★★★
+      
+      // ★★★ 管理密码 ★★★
       const ADMIN_PASSWORD = 'syqdsg';
 
-      const API_BASE = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${DATA_FILE_PATH}`;
+      // GitHub API 地址（只读不需要 Token）
+      const API_RAW = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/main/${DATA_FILE_PATH}`;
+      // 触发 Actions 的地址（写入需要 Token，但通过 Actions 的 Secrets 来保护）
+      const DISPATCH_URL = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/actions/workflows/update-debt.yml/dispatches`;
 
-      // 直接使用内置 Token
-      const githubToken = BUILTIN_GITHUB_TOKEN;
+      // ★★★ GitHub Token（仅用于触发 Actions，且通过 Secrets 保护） ★★★
+      // 注意：这个 Token 需要有 workflow 权限
+      let githubToken = '';
+      
       let adminLoggedIn = false;
       let cachedDebts = [];
 
@@ -479,28 +481,7 @@
         return Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
       }
 
-      function toBase64(str) {
-        const encoder = new TextEncoder();
-        const bytes = encoder.encode(str);
-        let binary = '';
-        bytes.forEach(b => binary += String.fromCharCode(b));
-        return btoa(binary);
-      }
-
-      function fromBase64(base64) {
-        const binary = atob(base64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-          bytes[i] = binary.charCodeAt(i);
-        }
-        return new TextDecoder('utf-8').decode(bytes);
-      }
-
-      // ==================== 日期与逾期判断 ====================
-      function getTodayStr() {
-        return new Date().toISOString().split('T')[0];
-      }
-
+      // ==================== 日期判断 ====================
       function isOverdue(dueDateStr) {
         if (!dueDateStr) return false;
         const today = new Date();
@@ -518,67 +499,67 @@
         return diffDays >= 0 && diffDays <= days;
       }
 
-      function getDueStatus(dueDateStr) {
-        if (!dueDateStr) return 'nodate';
-        if (isOverdue(dueDateStr)) return 'overdue';
-        if (isUpcoming(dueDateStr)) return 'upcoming';
-        return 'ok';
-      }
-
       function getDueStatusLabel(dueDateStr) {
-        switch (getDueStatus(dueDateStr)) {
-          case 'overdue': return '<span class="status-tag status-overdue">⚠ 已逾期</span>';
-          case 'upcoming': return '<span class="status-tag status-upcoming">⏰ 即将到期</span>';
-          case 'ok': return '<span class="status-tag status-ok">✅ 正常</span>';
-          case 'nodate': return '<span class="status-tag status-nodate">📅 未设日期</span>';
-        }
+        if (!dueDateStr) return '<span class="status-tag status-nodate">📅 未设日期</span>';
+        if (isOverdue(dueDateStr)) return '<span class="status-tag status-overdue">⚠ 已逾期</span>';
+        if (isUpcoming(dueDateStr)) return '<span class="status-tag status-upcoming">⏰ 即将到期</span>';
+        return '<span class="status-tag status-ok">✅ 正常</span>';
       }
 
       function formatDate(dateStr) {
         return dateStr || '未设置';
       }
 
-      // ==================== GitHub API ====================
+      // ==================== 数据读写（通过 Actions） ====================
+      // 读取：直接从 raw.githubusercontent.com 读（公开，不需要 Token）
       async function fetchDataFile() {
-        const response = await fetch(API_BASE, {
-          headers: { 'Authorization': `token ${githubToken}` }
-        });
+        const response = await fetch(API_RAW);
         if (!response.ok) {
           if (response.status === 404) return { debts: [], sha: null };
           throw new Error(`读取失败: ${response.status}`);
         }
-        const data = await response.json();
-        const content = JSON.parse(fromBase64(data.content));
-        return { debts: content.debts || [], sha: data.sha };
+        return await response.json();
       }
 
-      async function saveDataFile(debts) {
-        const { sha: latestSha } = await fetchDataFile();
-        const jsonStr = JSON.stringify({ debts }, null, 2);
+      // 写入：触发 GitHub Actions
+      async function triggerWorkflow(action, debtData, extraParams = {}) {
         const body = {
-          message: '更新债务数据',
-          content: toBase64(jsonStr),
+          ref: 'main',
+          inputs: {
+            action: action,
+            debt_data: typeof debtData === 'string' ? debtData : JSON.stringify(debtData)
+          }
         };
-        if (latestSha) body.sha = latestSha;
-        const response = await fetch(API_BASE, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `token ${githubToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(body),
-        });
-        if (!response.ok) {
-          const err = await response.json();
-          throw new Error(err.message || '保存失败');
+        
+        if (extraParams.debt_id) {
+          body.inputs.debt_id = extraParams.debt_id;
         }
+
+        const response = await fetch(DISPATCH_URL, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/vnd.github.v3+json',
+            'Authorization': `token ${githubToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+          throw new Error(`提交失败 (${response.status})`);
+        }
+
+        // 等待 Actions 执行完成
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        // 重新加载数据
+        await refreshData();
       }
 
       async function refreshData() {
         try {
-          const { debts } = await fetchDataFile();
-          cachedDebts = debts;
-          return debts;
+          const data = await fetchDataFile();
+          cachedDebts = data.debts || [];
+          return cachedDebts;
         } catch (e) {
           console.error('刷新数据失败:', e);
           return cachedDebts;
@@ -671,7 +652,7 @@
         resultDiv.innerHTML = html;
       }
 
-      // ==================== 申请面板（任何人都能提交） ====================
+      // ==================== 申请面板 ====================
       document.getElementById('submitRequestBtn').addEventListener('click', async () => {
         const name = document.getElementById('reqName').value.trim();
         const amountStr = document.getElementById('reqAmount').value;
@@ -684,9 +665,15 @@
         const amount = parseFloat(amountStr);
         if (isNaN(amount) || amount <= 0) { msgDiv.innerHTML = '<span style="color:#b91c1c;">请输入有效金额</span>'; return; }
 
+        if (!githubToken) {
+          msgDiv.innerHTML = '<span style="color:#b91c1c;">❌ 系统未配置写入功能，请联系管理员。</span>';
+          return;
+        }
+
+        msgDiv.innerHTML = '<span style="color:#0f5132;">⏳ 正在提交申请...</span>';
+
         try {
-          const debts = await refreshData();
-          debts.push({
+          const newDebt = {
             id: generateId(),
             name: name,
             type: direction,
@@ -694,9 +681,10 @@
             dueDate: dueDate || null,
             note: note || '',
             status: 'pending'
-          });
-          await saveDataFile(debts);
-          cachedDebts = debts;
+          };
+
+          await triggerWorkflow('add', newDebt);
+
           document.getElementById('reqName').value = '';
           document.getElementById('reqAmount').value = '';
           document.getElementById('reqDueDate').value = '';
@@ -708,18 +696,28 @@
         }
       });
 
-      // ==================== 后台管理（密码登录） ====================
+      // ==================== 后台管理 ====================
       const adminContent = document.getElementById('adminContent');
       const adminStatus = document.getElementById('adminStatus');
       const passwordInput = document.getElementById('adminPasswordInput');
 
-      document.getElementById('loginAdminBtn').addEventListener('click', () => {
+      document.getElementById('loginAdminBtn').addEventListener('click', async () => {
         const pwd = passwordInput.value.trim();
         if (pwd === ADMIN_PASSWORD) {
           adminLoggedIn = true;
           adminContent.style.display = 'block';
           adminStatus.innerHTML = '✅ 已登录';
           adminStatus.style.color = '#0f5132';
+          
+          // 同时需要配置 Token 才能进行写入操作
+          if (!githubToken) {
+            const tokenInput = prompt('请输入 GitHub Token（用于写入操作）：');
+            if (tokenInput) {
+              githubToken = tokenInput.trim();
+              sessionStorage.setItem('gh_token', githubToken);
+            }
+          }
+          
           passwordInput.value = '';
           refreshAdminPanel();
         } else {
@@ -737,6 +735,8 @@
       // 手动添加债务
       document.getElementById('addDebtBtn').addEventListener('click', async () => {
         if (!adminLoggedIn) { alert('请先登录后台'); return; }
+        if (!githubToken) { alert('请先配置 Token（重新登录后台并输入 Token）'); return; }
+        
         const name = document.getElementById('adminName').value.trim();
         const amountStr = document.getElementById('adminAmount').value;
         const direction = document.getElementById('adminDirection').value;
@@ -748,8 +748,7 @@
           return;
         }
         try {
-          const debts = await refreshData();
-          debts.push({
+          const newDebt = {
             id: generateId(),
             name: name,
             type: direction,
@@ -757,9 +756,10 @@
             dueDate: dueDate || null,
             note: note || '',
             status: 'approved'
-          });
-          await saveDataFile(debts);
-          cachedDebts = debts;
+          };
+
+          await triggerWorkflow('add', newDebt);
+
           document.getElementById('adminName').value = '';
           document.getElementById('adminAmount').value = '';
           document.getElementById('adminDueDate').value = '';
@@ -771,7 +771,7 @@
       });
 
       async function editDebt(id) {
-        if (!adminLoggedIn) return;
+        if (!adminLoggedIn || !githubToken) return;
         const debts = await refreshData();
         const debt = debts.find(d => d.id === id);
         if (!debt) return;
@@ -782,8 +782,7 @@
         debt.dueDate = newDueDate.trim() || null;
         debt.note = newNote.trim();
         try {
-          await saveDataFile(debts);
-          cachedDebts = debts;
+          await triggerWorkflow('update_all', { debts: debts });
           refreshAdminPanel();
         } catch (e) {
           alert('修改失败: ' + e.message);
@@ -791,28 +790,19 @@
       }
 
       async function approveRequest(id) {
-        if (!adminLoggedIn) return;
+        if (!adminLoggedIn || !githubToken) return;
         try {
-          const debts = await refreshData();
-          const index = debts.findIndex(d => d.id === id);
-          if (index !== -1 && debts[index].status === 'pending') {
-            debts[index].status = 'approved';
-            await saveDataFile(debts);
-            cachedDebts = debts;
-            refreshAdminPanel();
-          }
+          await triggerWorkflow('approve', {}, { debt_id: id });
+          refreshAdminPanel();
         } catch (e) {
           alert('操作失败: ' + e.message);
         }
       }
 
       async function rejectRequest(id) {
-        if (!adminLoggedIn) return;
+        if (!adminLoggedIn || !githubToken) return;
         try {
-          let debts = await refreshData();
-          debts = debts.filter(d => d.id !== id);
-          await saveDataFile(debts);
-          cachedDebts = debts;
+          await triggerWorkflow('delete', {}, { debt_id: id });
           refreshAdminPanel();
         } catch (e) {
           alert('操作失败: ' + e.message);
@@ -820,13 +810,10 @@
       }
 
       async function deleteDebt(id) {
-        if (!adminLoggedIn) return;
+        if (!adminLoggedIn || !githubToken) return;
         if (!confirm('确定删除这条记录吗？')) return;
         try {
-          let debts = await refreshData();
-          debts = debts.filter(d => d.id !== id);
-          await saveDataFile(debts);
-          cachedDebts = debts;
+          await triggerWorkflow('delete', {}, { debt_id: id });
           refreshAdminPanel();
         } catch (e) {
           alert('删除失败: ' + e.message);
@@ -871,7 +858,7 @@
             <span style="color:#dc2626;font-weight:700;">⚠ 逾期: ${overdueCount} 条</span></p>`;
           const sorted = [...approved].sort((a, b) => (isOverdue(a.dueDate) ? 0 : 1) - (isOverdue(b.dueDate) ? 0 : 1));
           sorted.forEach(d => {
-            const typeText = d.type === 'theyOwe' ? '💰 我欠管理员' : '🧾 管理员欠我';
+            const typeText = d.type === 'theyOwe' ? '💰我欠管理员' : '🧾管理员欠我';
             const dueStatus = getDueStatusLabel(d.dueDate);
             const overdueClass = isOverdue(d.dueDate) ? 'badge-overdue' : '';
             const noteHtml = d.note ? `<div class="debt-note">📝 ${escapeHtml(d.note)}</div>` : '';
@@ -898,6 +885,12 @@
 
       // ==================== 初始化 ====================
       async function init() {
+        // 从 session 恢复 Token
+        const savedToken = sessionStorage.getItem('gh_token');
+        if (savedToken) {
+          githubToken = savedToken;
+        }
+
         try {
           await refreshData();
         } catch (e) {
@@ -910,4 +903,4 @@
     })();
   </script>
 </body>
-  </html>
+</html>
