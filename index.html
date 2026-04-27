@@ -481,6 +481,16 @@
         return Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
       }
 
+      // 关键修复：支持中文的 Base64 解码函数
+      function fromBase64(base64) {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        return new TextDecoder('utf-8').decode(bytes);
+      }
+
       // ==================== 日期判断 ====================
       function isOverdue(dueDateStr) {
         if (!dueDateStr) return false;
@@ -505,38 +515,28 @@
         if (isUpcoming(dueDateStr)) return '<span class="status-tag status-upcoming">⏰ 即将到期</span>';
         return '<span class="status-tag status-ok">✅ 正常</span>';
       }
-      
-      function fromBase64(base64) {
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-    }
-    return new TextDecoder('utf-8').decode(bytes);
-}
-      
+
       function formatDate(dateStr) {
         return dateStr || '未设置';
       }
 
       // ==================== 数据读写（通过 Actions） ====================
-      // 读取：直接从 raw.githubusercontent.com 读（公开，不需要 Token）
       // 读取：通过 api.github.com/contents 接口（支持跨域，公开仓库不需要 Token）
-async function fetchDataFile() {
-    const response = await fetch(API_CONTENTS, {
-        headers: {
+      async function fetchDataFile() {
+        const response = await fetch(API_CONTENTS, {
+          headers: {
             'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+        if (!response.ok) {
+          if (response.status === 404) return { debts: [] };
+          throw new Error(`读取失败: ${response.status}`);
         }
-    });
-    if (!response.ok) {
-        if (response.status === 404) return { debts: [] };
-        throw new Error(`读取失败: ${response.status}`);
-    }
-    const data = await response.json();
-    // GitHub API 返回的 content 是 Base64 编码的
-    const content = JSON.parse(atob(data.content));
-    return { debts: content.debts || [] };
-}
+        const data = await response.json();
+        // GitHub API 返回的 content 是 Base64 编码的，必须用支持中文的 fromBase64 解码
+        const content = JSON.parse(fromBase64(data.content));
+        return { debts: content.debts || [] };
+      }
 
       // 写入：触发 GitHub Actions
       async function triggerWorkflow(action, debtData, extraParams = {}) {
