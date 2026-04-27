@@ -454,8 +454,8 @@
       // ★★★ 管理密码 ★★★
       const ADMIN_PASSWORD = 'syqdsg';
 
-      // GitHub API 地址（只读不需要 Token）
-      const API_RAW = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/main/${DATA_FILE_PATH}`;
+      // 改成这行（用 api.github.com 接口，支持跨域）
+      const API_CONTENTS = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${DATA_FILE_PATH}`;
       // 触发 Actions 的地址（写入需要 Token，但通过 Actions 的 Secrets 来保护）
       const DISPATCH_URL = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/actions/workflows/update-debt.yml/dispatches`;
 
@@ -512,14 +512,22 @@
 
       // ==================== 数据读写（通过 Actions） ====================
       // 读取：直接从 raw.githubusercontent.com 读（公开，不需要 Token）
-      async function fetchDataFile() {
-        const response = await fetch(API_RAW);
-        if (!response.ok) {
-          if (response.status === 404) return { debts: [], sha: null };
-          throw new Error(`读取失败: ${response.status}`);
+      // 读取：通过 api.github.com/contents 接口（支持跨域，公开仓库不需要 Token）
+async function fetchDataFile() {
+    const response = await fetch(API_CONTENTS, {
+        headers: {
+            'Accept': 'application/vnd.github.v3+json'
         }
-        return await response.json();
-      }
+    });
+    if (!response.ok) {
+        if (response.status === 404) return { debts: [] };
+        throw new Error(`读取失败: ${response.status}`);
+    }
+    const data = await response.json();
+    // GitHub API 返回的 content 是 Base64 编码的
+    const content = JSON.parse(atob(data.content));
+    return { debts: content.debts || [] };
+}
 
       // 写入：触发 GitHub Actions
       async function triggerWorkflow(action, debtData, extraParams = {}) {
