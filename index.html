@@ -505,7 +505,16 @@
         if (isUpcoming(dueDateStr)) return '<span class="status-tag status-upcoming">⏰ 即将到期</span>';
         return '<span class="status-tag status-ok">✅ 正常</span>';
       }
-
+      
+      function fromBase64(base64) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder('utf-8').decode(bytes);
+}
+      
       function formatDate(dateStr) {
         return dateStr || '未设置';
       }
