@@ -1,0 +1,94 @@
+name: 更新债务数据
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: '操作类型'
+        required: true
+        type: string
+      payload:
+        description: 'JSON 数据'
+        required: true
+        type: string
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: 处理并更新数据
+        run: |
+          ACTION="${{ github.event.inputs.action }}"
+          PAYLOAD='${{ github.event.inputs.payload }}'
+          
+          echo "操作类型: $ACTION"
+          
+          if [ ! -f data.json ]; then
+            echo '{"debts":[]}' > data.json
+          fi
+          
+          python3 << EOF
+          import json, sys, os
+
+          with open('data.json', 'r', encoding='utf-8') as f:
+              data = json.load(f)
+
+          action = os.environ['ACTION']
+          payload = json.loads(os.environ['PAYLOAD'])
+
+          if action == 'add':
+              data['debts'].append(payload)
+              print(f"添加记录: {payload.get('name')} - {payload.get('amount')}元")
+
+          elif action == 'update_all':
+              data = payload
+              print(f"全量更新，共 {len(data.get('debts', []))} 条记录")
+
+          elif action == 'approve':
+              debt_id = payload.get('id')
+              for d in data['debts']:
+                  if d.get('id') == debt_id:
+                      d['status'] = 'approved'
+                      print(f"审核通过: {d.get('name')}")
+                      break
+
+          elif action == 'reject':
+              debt_id = payload.get('id')
+              before = len(data['debts'])
+              data['debts'] = [d for d in data['debts'] if d.get('id') != debt_id]
+              print(f"拒绝并删除，移除 {before - len(data['debts'])} 条记录")
+
+          elif action == 'edit':
+              debt_id = payload.get('id')
+              updates = payload.get('updates', {})
+              for d in data['debts']:
+                  if d.get('id') == debt_id:
+                      for key, value in updates.items():
+                          d[key] = value
+                      print(f"编辑记录: {d.get('name')}")
+                      break
+
+          elif action == 'delete':
+              debt_id = payload.get('id')
+              before = len(data['debts'])
+              data['debts'] = [d for d in data['debts'] if d.get('id') != debt_id]
+              print(f"删除记录，移除 {before - len(data['debts'])} 条记录")
+
+          with open('data.json', 'w', encoding='utf-8') as f:
+              json.dump(data, f, ensure_ascii=False, indent=2)
+
+          print("操作完成")
+          EOF
+
+      - name: 提交更改
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add data.json
+          git diff --staged --quiet || git commit -m "🤖 自动更新: ${{ github.event.inputs.action }}"
+          git push
